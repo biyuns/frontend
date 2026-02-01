@@ -321,6 +321,49 @@ export interface TablesListResponse {
   tables: TableInfo[];
 }
 
+// 채팅 기록 관리 관련 타입 (Admin 전용)
+export interface ChatHistoryUserInfo {
+  id: number;
+  name: string;
+  email: string;
+  nickname: string;
+}
+
+export interface ChatHistoryListItem {
+  id: string;  // UUID
+  title: string;
+  user_id: number;
+  user: ChatHistoryUserInfo | null;
+  message_count: number;
+  last_message_at: string | null;
+  created_at: string | null;
+}
+
+export interface ChatHistoryAdminResponse {
+  items: ChatHistoryListItem[];
+  total: number;
+  page: number;
+  limit: number;
+  total_pages: number;
+}
+
+export interface ChatMessageAdminItem {
+  id: number;
+  is_user: boolean;
+  message: string;
+  model_name: string | null;
+  created_at: string | null;
+}
+
+export interface ChatHistoryDetailAdmin {
+  id: string;  // UUID
+  title: string;
+  user_id: number;
+  user: ChatHistoryUserInfo | null;
+  messages: ChatMessageAdminItem[];
+  created_at: string | null;
+}
+
 // 관리자 API
 export const adminAPI = {
   // 회원 목록 조회
@@ -411,6 +454,43 @@ export const adminAPI = {
   // DB 브라우저 - 레코드 삭제
   deleteTableRow: async (tableName: string, rowId: number): Promise<{ message: string }> => {
     return apiRequest<{ message: string }>(`/admin/db/tables/${tableName}/${rowId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // ========== 채팅 기록 관리 (Admin 전용) ==========
+
+  // 채팅 기록 목록 조회
+  getChatHistories: async (params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    user_id?: number;
+  } = {}): Promise<ChatHistoryAdminResponse> => {
+    const queryParams = new URLSearchParams();
+    if (params.page) queryParams.append('page', params.page.toString());
+    if (params.limit) queryParams.append('limit', params.limit.toString());
+    if (params.search) queryParams.append('search', params.search);
+    if (params.user_id) queryParams.append('user_id', params.user_id.toString());
+
+    const queryString = queryParams.toString();
+    const endpoint = `/admin/chat-histories${queryString ? `?${queryString}` : ''}`;
+
+    return apiRequest<ChatHistoryAdminResponse>(endpoint, {
+      method: 'GET',
+    });
+  },
+
+  // 채팅 기록 상세 조회
+  getChatHistoryDetail: async (chatId: string): Promise<ChatHistoryDetailAdmin> => {
+    return apiRequest<ChatHistoryDetailAdmin>(`/admin/chat-histories/${chatId}`, {
+      method: 'GET',
+    });
+  },
+
+  // 채팅 기록 삭제
+  deleteChatHistory: async (chatId: string): Promise<{ message: string }> => {
+    return apiRequest<{ message: string }>(`/admin/chat-histories/${chatId}`, {
       method: 'DELETE',
     });
   },

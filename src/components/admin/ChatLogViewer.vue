@@ -1,13 +1,13 @@
 <template>
   <div class="chat-log-viewer">
-    <h2 class="section-title">채팅 로그 뷰어</h2>
+    <h2 class="section-title">채팅 기록 관리</h2>
 
     <div class="viewer-layout">
       <!-- 채팅 세션 목록 -->
       <div class="sessions-panel">
         <div class="panel-header">
           <h3>채팅 세션</h3>
-          <span class="session-count">{{ sessions.length }}개</span>
+          <span class="session-count">{{ total }}개</span>
         </div>
 
         <div class="search-box">
@@ -18,7 +18,7 @@
           <input
             v-model="searchQuery"
             type="text"
-            placeholder="세션 검색..."
+            placeholder="제목, 사용자 검색..."
             @input="debouncedSearch"
           />
         </div>
@@ -38,8 +38,8 @@
             <div class="session-info">
               <span class="session-title">{{ session.title || '제목 없음' }}</span>
               <span class="session-meta">
-                <span class="user-badge">{{ getUserName(session.user_id) }}</span>
-                <span class="message-count">{{ getMessageCount(session.id) }}개 메시지</span>
+                <span class="user-badge">{{ getUserDisplayName(session) }}</span>
+                <span class="message-count">{{ session.message_count }}개 메시지</span>
               </span>
             </div>
             <span class="session-date">{{ formatDate(session.created_at) }}</span>
@@ -60,13 +60,14 @@
 
       <!-- 채팅 내용 -->
       <div class="chat-panel">
-        <div v-if="selectedSession" class="chat-content">
+        <div v-if="selectedSession && chatDetail" class="chat-content">
           <div class="chat-header">
             <div class="chat-info">
-              <h3>{{ selectedSession.title || '제목 없음' }}</h3>
+              <h3>{{ chatDetail.title || '제목 없음' }}</h3>
               <span class="chat-meta">
-                사용자: {{ getUserName(selectedSession.user_id) }} |
-                생성: {{ formatDateFull(selectedSession.created_at) }}
+                사용자: {{ getUserDisplayName(chatDetail) }}
+                <span v-if="chatDetail.user?.email" class="user-email">({{ chatDetail.user.email }})</span>
+                <span v-if="chatDetail.created_at"> | 생성: {{ formatDateFull(chatDetail.created_at) }}</span>
               </span>
             </div>
             <div class="chat-actions">
@@ -93,7 +94,7 @@
 
           <div v-else class="messages-container">
             <div
-              v-for="(message, idx) in messages"
+              v-for="(message, idx) in chatDetail.messages"
               :key="idx"
               class="message-bubble"
               :class="{ 'user-message': message.is_user, 'ai-message': !message.is_user }"
@@ -105,11 +106,14 @@
                     {{ getModelDisplayName(message.model_name) }}
                   </span>
                 </span>
+                <span v-if="message.created_at" class="message-time">
+                  {{ formatTime(message.created_at) }}
+                </span>
               </div>
               <div class="message-body" v-html="formatMessage(message.message)"></div>
             </div>
 
-            <div v-if="messages.length === 0" class="empty-messages">
+            <div v-if="chatDetail.messages.length === 0" class="empty-messages">
               이 세션에 메시지가 없습니다
             </div>
           </div>
@@ -132,7 +136,9 @@
         <p class="delete-warning">이 작업은 되돌릴 수 없습니다.</p>
         <div class="modal-actions">
           <button class="cancel-btn" @click="showDeleteModal = false">취소</button>
-          <button class="confirm-delete-btn" @click="deleteSession">삭제</button>
+          <button class="confirm-delete-btn" :disabled="deleting" @click="deleteSession">
+            {{ deleting ? '삭제 중...' : '삭제' }}
+          </button>
         </div>
       </div>
     </div>
@@ -141,59 +147,35 @@
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
-import { adminAPI } from '../../services/api'
+import { adminAPI, type ChatHistoryListItem, type ChatHistoryDetailAdmin } from '../../services/api'
 import { marked } from 'marked'
 
-interface ChatSession {
-  id: number
-  user_id: number
-  title: string
-  created_at: string
-}
-
-interface ChatMessage {
-  id: number
-  chat_history_id: number
-  is_user: boolean
-  message: string
-  model_name?: string
-}
-
-interface UserInfo {
-  id: number
-  name: string
-  nickname: string
-}
-
-const sessions = ref<ChatSession[]>([])
-const messages = ref<ChatMessage[]>([])
-const users = ref<Map<number, UserInfo>>(new Map())
-const messageCounts = ref<Map<number, number>>(new Map())
-const selectedSession = ref<ChatSession | null>(null)
+const sessions = ref<ChatHistoryListItem[]>([])
+const selectedSession = ref<ChatHistoryListItem | null>(null)
+const chatDetail = ref<ChatHistoryDetailAdmin | null>(null)
 const loadingSessions = ref(false)
 const loadingMessages = ref(false)
 const searchQuery = ref('')
 const currentPage = ref(1)
 const totalPages = ref(1)
+const total = ref(0)
 const showDeleteModal = ref(false)
+const deleting = ref(false)
 
 let searchTimeout: ReturnType<typeof setTimeout> | null = null
 
 const loadSessions = async () => {
   loadingSessions.value = true
   try {
-    // 채팅 세션 목록 가져오기
-    const response = await adminAPI.getTableData('chathistory', {
+    const response = await adminAPI.getChatHistories({
       page: currentPage.value,
       limit: 20,
       search: searchQuery.value || undefined,
     })
 
-    sessions.value = response.rows as unknown as ChatSession[]
+    sessions.value = response.items
     totalPages.value = response.total_pages
-
-    // 메시지 개수 계산을 위해 전체 메시지 가져오기
-    await loadMessageCounts()
+    total.value = response.total
   } catch (error) {
     console.error('채팅 세션 로드 실패:', error)
   } finally {
@@ -201,79 +183,32 @@ const loadSessions = async () => {
   }
 }
 
-const loadMessageCounts = async () => {
-  try {
-    // 메시지 테이블에서 세션별 개수 계산 (백엔드 limit 최대값: 100)
-    const response = await adminAPI.getTableData('chatmessage', {
-      page: 1,
-      limit: 100,
-    })
-
-    const counts = new Map<number, number>()
-    for (const msg of response.rows as unknown as ChatMessage[]) {
-      const count = counts.get(msg.chat_history_id) || 0
-      counts.set(msg.chat_history_id, count + 1)
-    }
-    messageCounts.value = counts
-  } catch (error) {
-    console.error('메시지 개수 로드 실패:', error)
-  }
-}
-
-const loadUsers = async () => {
-  try {
-    const response = await adminAPI.getTableData('member', {
-      page: 1,
-      limit: 100,
-    })
-
-    const userMap = new Map<number, UserInfo>()
-    for (const user of response.rows as unknown as UserInfo[]) {
-      userMap.set(user.id, user)
-    }
-    users.value = userMap
-  } catch (error) {
-    console.error('사용자 목록 로드 실패:', error)
-  }
-}
-
-const selectSession = async (session: ChatSession) => {
+const selectSession = async (session: ChatHistoryListItem) => {
   selectedSession.value = session
   loadingMessages.value = true
+  chatDetail.value = null
 
   try {
-    // 해당 세션의 메시지만 필터링하여 가져오기 (백엔드 limit 최대값: 100)
-    const response = await adminAPI.getTableData('chatmessage', {
-      page: 1,
-      limit: 100,
-      filter_column: 'chat_history_id',
-      filter_value: String(session.id),
-    })
-
-    // ID 순으로 정렬 (오래된 메시지가 먼저)
-    messages.value = (response.rows as unknown as ChatMessage[])
-      .sort((a, b) => a.id - b.id)
+    const detail = await adminAPI.getChatHistoryDetail(session.id)
+    chatDetail.value = detail
   } catch (error) {
-    console.error('메시지 로드 실패:', error)
+    console.error('채팅 상세 로드 실패:', error)
   } finally {
     loadingMessages.value = false
   }
 }
 
-const getUserName = (userId: number): string => {
-  const user = users.value.get(userId)
-  return user?.nickname || user?.name || `사용자 #${userId}`
+const getUserDisplayName = (item: ChatHistoryListItem | ChatHistoryDetailAdmin): string => {
+  if (item.user) {
+    return item.user.nickname || item.user.name || `사용자 #${item.user_id}`
+  }
+  return `사용자 #${item.user_id}`
 }
 
-const getMessageCount = (sessionId: number): number => {
-  return messageCounts.value.get(sessionId) || 0
-}
-
-const formatDate = (dateStr: string): string => {
+const formatDate = (dateStr: string | null): string => {
   if (!dateStr) return '-'
   try {
     const date = new Date(dateStr)
-    // Invalid Date 체크
     if (isNaN(date.getTime())) return '-'
 
     const now = new Date()
@@ -292,11 +227,10 @@ const formatDate = (dateStr: string): string => {
   }
 }
 
-const formatDateFull = (dateStr: string): string => {
+const formatDateFull = (dateStr: string | null): string => {
   if (!dateStr) return '-'
   try {
     const date = new Date(dateStr)
-    // Invalid Date 체크
     if (isNaN(date.getTime())) return '-'
     return date.toLocaleString('ko-KR')
   } catch {
@@ -304,13 +238,29 @@ const formatDateFull = (dateStr: string): string => {
   }
 }
 
-const getModelDisplayName = (modelName: string | null | undefined): string => {
+const formatTime = (dateStr: string | null): string => {
+  if (!dateStr) return ''
+  try {
+    const date = new Date(dateStr)
+    if (isNaN(date.getTime())) return ''
+    return date.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+  } catch {
+    return ''
+  }
+}
+
+const getModelDisplayName = (modelName: string | null): string => {
   if (!modelName) return ''
 
   const displayNames: Record<string, string> = {
     '통합 모델': '💬 일반',
     '깊은 추론 모델': '🧠 CoT',
-    '대학 정보 검색 모델': '🔍 RAG'
+    '대학 정보 검색 모델': '🔍 RAG',
+    'general': '💬 일반',
+    'cot': '🧠 CoT',
+    'rag': '🔍 RAG',
+    'study': '📚 학습',
+    'career': '💼 진로',
   }
 
   return displayNames[modelName] || modelName
@@ -318,7 +268,6 @@ const getModelDisplayName = (modelName: string | null | undefined): string => {
 
 const formatMessage = (message: string): string => {
   try {
-    // marked를 사용하여 마크다운 변환
     return marked.parse(message) as string
   } catch {
     return message
@@ -339,15 +288,19 @@ const goToPage = (page: number) => {
 }
 
 const exportChat = () => {
-  if (!selectedSession.value || messages.value.length === 0) return
+  if (!chatDetail.value || chatDetail.value.messages.length === 0) return
 
-  let content = `채팅 세션: ${selectedSession.value.title}\n`
-  content += `사용자: ${getUserName(selectedSession.value.user_id)}\n`
-  content += `생성일: ${formatDateFull(selectedSession.value.created_at)}\n`
+  let content = `채팅 세션: ${chatDetail.value.title}\n`
+  content += `사용자: ${getUserDisplayName(chatDetail.value)}`
+  if (chatDetail.value.user?.email) {
+    content += ` (${chatDetail.value.user.email})`
+  }
+  content += `\n`
+  content += `생성일: ${formatDateFull(chatDetail.value.created_at)}\n`
   content += `${'='.repeat(50)}\n\n`
 
-  for (const msg of messages.value) {
-    const sender = msg.is_user ? '[사용자]' : '[AI]'
+  for (const msg of chatDetail.value.messages) {
+    const sender = msg.is_user ? '[사용자]' : `[AI${msg.model_name ? ` - ${msg.model_name}` : ''}]`
     content += `${sender}\n${msg.message}\n\n`
   }
 
@@ -355,7 +308,7 @@ const exportChat = () => {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   a.href = url
-  a.download = `chat_${selectedSession.value.id}_${new Date().toISOString().slice(0, 10)}.txt`
+  a.download = `chat_${chatDetail.value.id}_${new Date().toISOString().slice(0, 10)}.txt`
   a.click()
   URL.revokeObjectURL(url)
 }
@@ -367,29 +320,26 @@ const confirmDeleteSession = () => {
 const deleteSession = async () => {
   if (!selectedSession.value) return
 
+  deleting.value = true
   try {
-    // 세션의 모든 메시지 삭제
-    for (const msg of messages.value) {
-      await adminAPI.deleteTableRow('chatmessage', msg.id)
-    }
-
-    // 세션 삭제
-    await adminAPI.deleteTableRow('chathistory', selectedSession.value.id)
+    await adminAPI.deleteChatHistory(selectedSession.value.id)
 
     showDeleteModal.value = false
     selectedSession.value = null
-    messages.value = []
+    chatDetail.value = null
 
     // 목록 새로고침
     await loadSessions()
   } catch (error) {
     console.error('세션 삭제 실패:', error)
     alert('세션 삭제에 실패했습니다.')
+  } finally {
+    deleting.value = false
   }
 }
 
 onMounted(async () => {
-  await Promise.all([loadUsers(), loadSessions()])
+  await loadSessions()
 })
 </script>
 
@@ -572,6 +522,10 @@ onMounted(async () => {
   color: #6b7280;
 }
 
+.user-email {
+  color: #9ca3af;
+}
+
 .chat-actions {
   display: flex;
   gap: 8px;
@@ -659,6 +613,15 @@ onMounted(async () => {
 
 .user-message .sender {
   color: rgba(255, 255, 255, 0.8);
+}
+
+.message-time {
+  font-size: 11px;
+  opacity: 0.6;
+}
+
+.user-message .message-time {
+  color: rgba(255, 255, 255, 0.6);
 }
 
 .message-body {
@@ -857,6 +820,11 @@ onMounted(async () => {
   color: #fff;
   font-size: 14px;
   cursor: pointer;
+}
+
+.confirm-delete-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* 반응형 */

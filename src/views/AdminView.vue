@@ -80,6 +80,7 @@
           <!-- admin 전용 메뉴 -->
           <UserManagement v-if="activeMenu === 'users' && permissions.user_management" />
           <DatabaseBrowser v-else-if="activeMenu === 'database' && permissions.db_browser" />
+          <ChatLogViewer v-else-if="activeMenu === 'chat-history' && permissions.chat_history" />
           <!-- dev/admin 공용 메뉴 -->
           <ContentManager v-else-if="activeMenu === 'content' && permissions.content_management" />
           <KnowledgeManager v-else-if="activeMenu === 'knowledge' && permissions.knowledge_management" />
@@ -133,6 +134,7 @@ import UserManagement from '../components/admin/UserManagement.vue'
 import DatabaseBrowser from '../components/admin/DatabaseBrowser.vue'
 import ContentManager from '../components/admin/ContentManager.vue'
 import KnowledgeManager from '../components/admin/KnowledgeManager.vue'
+import ChatLogViewer from '../components/admin/ChatLogViewer.vue'
 import StatsCard from '../components/admin/StatsCard.vue'
 import { adminAPI, type PlatformStats } from '../services/api'
 import {
@@ -153,6 +155,7 @@ interface Permissions {
   user_management: boolean
   db_browser: boolean
   role_management: boolean
+  chat_history: boolean
 }
 
 const router = useRouter()
@@ -169,6 +172,7 @@ const permissions = ref<Permissions>({
   user_management: false,
   db_browser: false,
   role_management: false,
+  chat_history: false,
 })
 const currentUser = ref<UserInfo | null>(null)
 
@@ -258,6 +262,7 @@ const checkAdminAuth = async () => {
         user_management: false,
         db_browser: false,
         role_management: false,
+        chat_history: false,
       }
     }
   } catch (error) {
@@ -334,6 +339,7 @@ const handleLogout = async () => {
     user_management: false,
     db_browser: false,
     role_management: false,
+    chat_history: false,
   }
   currentUser.value = null
   loginEmail.value = ''
