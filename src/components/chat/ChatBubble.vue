@@ -925,14 +925,14 @@ onUpdated(() => {
 :deep(.markdown-content ul + ul),
 :deep(.markdown-content ol + ol),
 :deep(.markdown-content ul + ol) {
-  margin-top: 0.5em;
+  margin-top: 2px;
 }
 
-/* 순서 목록 다음의 불릿 목록은 들여쓰기 (PDF 스타일: 계층 구조) */
+/* 순서 목록 다음의 불릿 목록은 들여쓰기 (계층 구조 표현) */
 :deep(.markdown-content ol + ul) {
-  margin-top: 0.6em;
-  margin-left: 1.8em;
-  margin-bottom: 1.2em;
+  margin-top: 4px;
+  margin-left: 1.5em;
+  margin-bottom: 0.75em;
 }
 
 :deep(.markdown-content ul) {
