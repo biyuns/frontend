@@ -1,3 +1,4 @@
+index
 <!-- Test comment to force re-compilation -->
 <template>
   <div class="main-container">
@@ -971,7 +972,7 @@ const goToCrew = () => {
   position: relative;
   width: 100%;
   height: 36px;
-  padding: 0 20px 0 20px;
+  padding: 0 20px 0 10px;
   background: var(--color-bg-primary);
   /* border-right removed to prevent double lines */
   z-index: 10;
@@ -987,7 +988,7 @@ const goToCrew = () => {
   flex-direction: row;
   align-items: center;
   flex: none;
-  gap: 15px;
+  gap: 5px;
   box-sizing: border-box;
   flex-shrink: 1;
   position: relative;
@@ -1454,6 +1455,7 @@ const goToCrew = () => {
   flex: 1;
   min-height: 0;
   overflow: visible; /* 오른쪽 말풍선이 잘리지 않도록 변경 */
+  padding-top:80px;
 }
 
 .chat-input-area {

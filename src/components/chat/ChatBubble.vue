@@ -1,3 +1,4 @@
+chatbubble
 <template>
   <div :class="['chat-bubble-wrapper', align]">
     <div :class="['chat-bubble', align, { 'streaming': isStreaming }]">
@@ -475,6 +476,10 @@ onUpdated(() => {
   overflow: visible;
 }
 
+.chat-bubble-wrapper:first-child {
+  margin-top: 60px;
+}
+
 .chat-bubble-wrapper.right {
   align-items: flex-end;
   margin-right: 10px; /* 오른쪽 말풍선 꼬리를 위한 여유 공간 */
@@ -602,7 +607,7 @@ onUpdated(() => {
   color: var(--color-text-primary);
   word-break: break-word;
   font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Ubuntu, "Helvetica Neue", Helvetica, Arial, sans-serif;
-  margin: 8px 0;
+  margin: 4px 0;
   line-height: 1.5;
   position: relative;
   transition: all 0.3s ease;
@@ -1415,6 +1420,7 @@ onUpdated(() => {
 
   .chat-bubble-wrapper {
     max-width: calc(100% - 12px);
+    /* margin-top :40px; */
   }
 
   .chat-bubble-wrapper.right {
