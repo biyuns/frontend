@@ -41,6 +41,12 @@ export const removeUserInfo = (): void => {
 
 // 관리자 여부 체크
 export const isAdmin = (): boolean => {
+  // 로컬 개발 환경에서는 admin 접속 허용
+  if (import.meta.env.DEV) {
+    console.log('🔓 DEV MODE: Admin access granted')
+    return true
+  }
+
   const user = getUserInfo()
   return user?.is_admin === true
 }
@@ -111,6 +117,12 @@ export const logout = (): void => {
   window.location.href = '/login'
 }
 
+// Mock 토큰 여부 확인
+export const isMockToken = (): boolean => {
+  const token = getAccessToken()
+  return token?.startsWith('dev_mock_token_') ?? false
+}
+
 // API 요청 래퍼 (자동 인증 헤더 포함 + 자동 토큰 갱신)
 export const apiRequest = async (url: string, options: RequestInit = {}): Promise<Response> => {
   const headers = {
@@ -126,6 +138,12 @@ export const apiRequest = async (url: string, options: RequestInit = {}): Promis
 
   // 401 Unauthorized 시 토큰 갱신 시도
   if (response.status === 401) {
+    // Mock 토큰인 경우 로그아웃하지 않고 에러만 반환 (개발 모드)
+    if (isMockToken()) {
+      console.log('[Dev] Mock token - skipping logout on 401')
+      return response
+    }
+
     const refreshed = await refreshAccessToken()
 
     if (refreshed) {

@@ -13,18 +13,16 @@
         </div>
         <div class="frame-2">
           <div class="chatbot-menu-item" :class="{'collapsed': isCollapsed }">
-            <div class="frame-3" :class="{'collapsed': isCollapsed }" @click="goToCrew">
+            <div class="frame-3" :class="{'collapsed': isCollapsed }" @click="goToPreparation">
               <div class="group-4">
-                <div class="group-5"></div>
-                <div class="frame-6"><span class="day">DAY</span></div>
               </div>
               <span class="empty-classroom-check" v-show="showCollapsibleContent" >빈 강의실 확인</span>
             </div>
-            <div class="frame-7"  :class="{'collapsed': isCollapsed }" @click="goToCrew">
+            <div class="frame-7"  :class="{'collapsed': isCollapsed }" @click="goToPreparation">
               <div class="group-8"></div>
               <span class="library-study-room-reservation" v-show="showCollapsibleContent" >도서관 ∙ 열람실 자리 예약</span>
             </div>
-            <div class="frame-9" :class="{'collapsed': isCollapsed }" @click="goToCrew">
+            <div class="frame-9" :class="{'collapsed': isCollapsed }" @click="goToPreparation">
               <div class="group-a"></div>
               <span class="status" v-show="showCollapsibleContent" >학식당 현황</span>
             </div>
@@ -70,7 +68,7 @@
     
     <div class="sidebar-collapsible-ct" v-show=showFixedContent>
       <div>
-      <img :src="eulLogo" alt="EULGPT 로고" @click="goToHome" class="eulgpt-logo-svg" />
+      <img v-if="!isMobile" :src="eulLogo" alt="EULGPT 로고" @click="goToHome" class="eulgpt-logo-svg" />
       <div class="edit-icon" @click="startNewChat"></div>
       </div>
     </div>
@@ -117,12 +115,12 @@
               ref="chatInputRef"
               :isLoading="isLoading"
               :isStreaming="isStreaming"
+              :lastIndexedTime="chatMode === 'rag' ? formattedLastIndexed : null"
               @sendMessage="handleSendMessage"
               @stopResponse="stopResponse"
             />
           </div>
         </div>
-
       </div>
     </div>
 
@@ -152,7 +150,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick } from 'vue';
+import { ref, computed, onMounted, onUnmounted, nextTick, watch  } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
 import ChatHistory from './ChatHistory.vue';
 import ChatMessageArea from './ChatMessageArea.vue';
@@ -169,6 +167,7 @@ import eulLogo from '../../assets/eul_logo.svg';
 import sidebar_chatlogo from '../../components/chat/icon/sidebar-toggle-chatimg.svg'
 import { getApiBaseUrl } from '@/utils/ports-config';
 import { createLogger } from '../../utils/logger';
+import { knowledgeAPI } from '../../services/api';
 const log = createLogger('Chat');
 
 const router = useRouter();
@@ -350,6 +349,19 @@ const handleRetryMessage = (messageIndex: number) => {
 log.debug('Current messages:', messages.value);
 
 const isMobile = ref(false);
+
+watch(isMobile, (newVal) => {
+  if (newVal) {
+    isCollapsed.value = false;
+    showCollapsibleContent.value = true;
+    showFixedContent.value = false;
+    sidebarVisible.value = true; 
+  } else {
+    sidebarVisible.value = true;
+  }
+});
+
+
 const sidebarVisible = ref(true);
 const sidebarWidth = ref(Number(localStorage.getItem('sidebarWidth')) || 270);
 
@@ -438,6 +450,38 @@ const userInitial = computed(() => {
 const showSourceSidebar = ref(true); // RAG 소스 사이드바 표시 여부
 const showArtifactPanel = ref(true); // 아티팩트 패널 표시 여부
 const selectedArtifactMessageId = ref<string | null>(null); // 선택된 아티팩트의 메시지 ID
+
+// 마지막 인덱싱 시간 표시용
+const lastIndexedTime = ref<string | null>(null);
+
+// 마지막 인덱싱 시간을 한국어 형식으로 변환
+const formattedLastIndexed = computed(() => {
+  if (!lastIndexedTime.value) return null;
+  try {
+    const date = new Date(lastIndexedTime.value);
+    return date.toLocaleString('ko-KR', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch {
+    return lastIndexedTime.value;
+  }
+});
+
+// 재인덱싱 상태 조회
+const fetchLastIndexedTime = async () => {
+  try {
+    const status = await knowledgeAPI.getReindexStatus();
+    if (status.last_indexed) {
+      lastIndexedTime.value = status.last_indexed;
+    }
+  } catch (error) {
+    log.debug('Failed to fetch reindex status:', error);
+  }
+};
 
 const showMobileOverlay = computed(() => isMobile.value && sidebarVisible.value);
 
@@ -709,9 +753,19 @@ const isCollapsed = ref(false);
 
 // pc 사이드바 토글 함수 설정
 const pctoggleSidebar = () => {
-  showCollapsibleContent.value = !showCollapsibleContent.value;
-  showFixedContent.value = !showFixedContent.value;
-  isCollapsed.value = !isCollapsed.value;
+  if (isMobile.value) {
+    sidebarVisible.value = !sidebarVisible.value;
+
+    if (sidebarVisible.value) {
+      showCollapsibleContent.value = true;
+      showFixedContent.value = false;
+      isCollapsed.value = false;
+    }
+  } else {
+    showCollapsibleContent.value = !showCollapsibleContent.value;
+    showFixedContent.value = !showFixedContent.value;
+    isCollapsed.value = !isCollapsed.value;
+  }
 };
 
 const toggleSidebar = () => {
@@ -832,6 +886,7 @@ const fetchUserProfile = async () => {
 onMounted(() => {
   checkMobileSize();
   fetchUserProfile();
+  fetchLastIndexedTime(); // 마지막 인덱싱 시간 조회
   window.addEventListener('resize', checkMobileSize);
   document.addEventListener('click', handleClickOutside);
 
@@ -880,8 +935,8 @@ const goToHome = () => {
   router.push('/');
 };
 
-const goToCrew = () => {
-  router.push('/crew');
+const goToPreparation = () => {
+  router.push('/preparation');
 };
 
 // Reserved for future use
@@ -920,7 +975,7 @@ const goToCrew = () => {
   border-right: 1px solid var(--color-card-border);
   min-width: 200px;
   max-width: 500px;
-  border-radius: 20px;
+  border-radius: 0px 20px 20px 0px;
   box-shadow:
     inset 0px 0px 6px 0px rgba(255, 255, 255, 0.15),
     inset 2px 2px 4px 0px rgba(255, 255, 255, 0.96),
@@ -1018,6 +1073,7 @@ const goToCrew = () => {
   background-size: cover;
   z-index: 16;
   overflow: hidden;
+  display: none;
 }
 .frame-2 {
   display: flex;
@@ -1029,7 +1085,8 @@ const goToCrew = () => {
   gap: 40px;
   position: relative;
   min-width: 0;
-  height: 681px;
+  flex:1;
+  overflow: hidden;
   padding: 20px 0 0 0;
   z-index: 17;
 }
@@ -1080,34 +1137,18 @@ const goToCrew = () => {
   z-index: 19;
 }
 
+
+
 .group-4 {
   flex-shrink: 0;
   position: relative;
   width: 25px;
   height: 27.004px;
-  z-index: 20;
+  background: url('./icon/캘린더.svg') no-repeat center;
+  background-size: cover;
+  z-index: 29;
 }
-.group-5 {
-  position: relative;
-  width: 14.078px;
-  height: 9.751px;
-  margin: 0 0 0 5.582px;
-  background: url(https://codia-f2c.s3.us-west-1.amazonaws.com/image/2025-07-31/CcpStAfx5O.png)
-    no-repeat center;
-  background-size: 100% 100%;
-  z-index: 21;
-  border-radius: 6.251px;
-}
-.frame-6 {
-  position: relative;
-  width: 25px;
-  height: 25px;
-  margin: -4.751px 0 0 0;
-  background: var(--color-primary-light);
-  z-index: 22;
-  overflow: visible;
-  border-radius: 6.251px;
-}
+
 .day {
   display: flex;
   align-items: center;
@@ -1258,7 +1299,7 @@ const goToCrew = () => {
   text-transform: uppercase;
 }
 .frame-12 {
-  display: flex;
+  display: none;
   align-items: flex-end;
   justify-content: center;
   flex-wrap: nowrap;
@@ -1517,8 +1558,10 @@ const goToCrew = () => {
 }
 
 .sidebar-toggle-chaticon {
-  padding-left: 28px;
   cursor: pointer;
+  width:100%;
+  display : flex;
+  justify-content: center;
 }
 
 /* ========================================
@@ -1633,6 +1676,7 @@ const goToCrew = () => {
   .edit-icon {
     width: 20px;
     height: 20px;
+    display: none;
   }
 
   .chatbot-menu-item {
@@ -1657,6 +1701,9 @@ const goToCrew = () => {
   .chat-input-area {
     padding-bottom: max(env(safe-area-inset-bottom), var(--keyboard-height, 0px));
   }
+  .chatbot-sidebar-wrapper {
+    border-radius: 0px;
+  }
 }
 
 /* Extra small mobile (320px and below) */
@@ -1677,6 +1724,7 @@ const goToCrew = () => {
   .edit-icon {
     width: 18px;
     height: 18px;
+    display: none;
   }
 
   .chat-content-col {

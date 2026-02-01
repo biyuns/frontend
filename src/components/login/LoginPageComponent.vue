@@ -29,6 +29,46 @@
 
         <!-- 이메일 로그인 버튼 완전 제거 -->
 
+        <!-- 개발 환경 전용: 이메일 로그인 폼 -->
+        <div v-if="isDevelopment" class="form-container">
+          <div class="input-group">
+            <input
+              v-model="email"
+              type="email"
+              class="input-field"
+              placeholder="이메일 ID"
+              @keyup.enter="handleLogin"
+            />
+          </div>
+          <div class="password-group">
+            <input
+              v-model="password"
+              :type="showPassword ? 'text' : 'password'"
+              class="input-field"
+              placeholder="비밀번호"
+              @keyup.enter="handleLogin"
+            />
+            <button type="button" class="eye-button" @click="togglePassword">
+              {{ showPassword ? '👁️' : '👁️‍🗨️' }}
+            </button>
+          </div>
+          <button
+            class="login-button"
+            @click="handleLogin"
+            :disabled="isLoading"
+          >
+            <span class="button-text">{{ isLoading ? '로그인 중...' : '로그인' }}</span>
+          </button>
+
+          <!-- Mock 로그인: 백엔드 없이 개발할 때 사용 -->
+          <button
+            class="mock-login-button"
+            @click="handleMockLogin"
+          >
+            <span class="mock-button-text">개발자 로그인 (백엔드 불필요)</span>
+          </button>
+        </div>
+
         <div class="divider-section">
           <!-- 구분선 제거 (카카오 로그인만 있으므로 불필요) -->
           <div class="alternative-login">
@@ -149,6 +189,35 @@ const handleKakaoLogin = () => {
   console.log('카카오 로그인 시도')
   // 백엔드 카카오 로그인 엔드포인트로 리다이렉트
   window.location.href = `${API_BASE_URL}/member/kakao/login`
+}
+
+// Mock 로그인: 백엔드 없이 프론트엔드만 개발할 때 사용
+const handleMockLogin = async () => {
+  console.log('[Mock Login] 개발자 로그인 실행')
+
+  // 가짜 토큰 생성
+  const mockToken = 'dev_mock_token_' + Date.now()
+
+  // 가짜 사용자 정보
+  const mockUser = {
+    id: 999,
+    name: '개발자',
+    email: 'dev@eulgpt.local',
+    nickname: '개발자',
+    is_pro: true,
+    is_admin: true
+  }
+
+  // localStorage에 저장
+  setAccessToken(mockToken)
+  setUserInfo(mockUser)
+
+  console.log('[Mock Login] 로그인 성공:', mockUser)
+  showToastMessage('개발자 모드로 로그인되었습니다.')
+
+  // 즉시 채팅 페이지로 이동
+  const redirect = (router.currentRoute.value.query.redirect as string) || '/chat'
+  await router.push(redirect)
 }
 </script>
 
@@ -335,6 +404,35 @@ const handleKakaoLogin = () => {
 .login-button:disabled {
   opacity: 0.7;
   cursor: not-allowed;
+}
+
+.mock-login-button {
+  display: flex;
+  justify-content: center;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  border-radius: 12px;
+  align-self: stretch;
+  background-color: #6b7280;
+  box-sizing: border-box;
+  padding: 14px 60px;
+  border: 2px dashed #9ca3af;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  margin-top: 10px;
+}
+
+.mock-login-button:hover {
+  background-color: #4b5563;
+}
+
+.mock-button-text {
+  color: #ffffff;
+  font-size: 14px;
+  font-family: Pretendard, sans-serif;
+  font-weight: 600;
+  text-align: center;
 }
 
 .button-text {
