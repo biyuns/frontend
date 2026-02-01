@@ -533,6 +533,22 @@ export const adminAPI = {
       method: 'GET',
     });
   },
+
+  // ========== 데이터베이스 백업 (Admin 전용) ==========
+
+  // 전체 데이터베이스 백업 (JSON)
+  createFullBackup: async (): Promise<Record<string, unknown>> => {
+    return apiRequest<Record<string, unknown>>('/admin/backup/full', {
+      method: 'GET',
+    });
+  },
+
+  // 특정 테이블 백업 (JSON)
+  backupTable: async (tableName: string): Promise<Record<string, unknown>> => {
+    return apiRequest<Record<string, unknown>>(`/admin/backup/table/${tableName}`, {
+      method: 'GET',
+    });
+  },
 };
 
 // Bug Report API 타입

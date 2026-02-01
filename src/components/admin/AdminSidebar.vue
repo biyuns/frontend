@@ -93,6 +93,21 @@
         </svg>
         <span>채팅 기록</span>
       </button>
+
+      <!-- 백업: admin만 접근 가능 -->
+      <button
+        v-if="permissions.backup"
+        class="nav-item"
+        :class="{ active: activeMenu === 'backup' }"
+        @click="$emit('menuChange', 'backup')"
+      >
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        <span>백업</span>
+      </button>
     </nav>
 
     <!-- 권한 레벨 표시 -->
@@ -112,6 +127,7 @@ interface Permissions {
   db_browser: boolean
   role_management: boolean
   chat_history: boolean
+  backup: boolean
 }
 
 defineProps<{
