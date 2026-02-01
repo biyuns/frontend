@@ -232,6 +232,8 @@ export const healthAPI = {
 };
 
 // 관리자 API 타입
+export type AdminRole = 'dev' | 'admin' | null;
+
 export interface UserListItem {
   id: number;
   name: string;
@@ -239,6 +241,7 @@ export interface UserListItem {
   nickname: string;
   is_pro: boolean;
   is_admin: boolean;
+  admin_role: AdminRole;
   oauth_provider: string | null;
   created_at: string;
 }
@@ -252,6 +255,7 @@ export interface UserDetail {
   birth_date: string | null;
   is_pro: boolean;
   is_admin: boolean;
+  admin_role: AdminRole;
   verified_email: string | null;
   oauth_provider: string | null;
   oauth_id: string | null;
@@ -339,7 +343,7 @@ export const adminAPI = {
   // 회원 권한 수정
   updateUser: async (userId: number, data: {
     is_pro?: boolean;
-    is_admin?: boolean;
+    admin_role?: AdminRole;
   }): Promise<UserDetail> => {
     return apiRequest<UserDetail>(`/admin/users/${userId}`, {
       method: 'PUT',
