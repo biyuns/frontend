@@ -1494,7 +1494,8 @@ const goToPreparation = () => {
 .chat-messages-container {
   flex: 1;
   min-height: 0;
-  overflow: visible; /* 오른쪽 말풍선이 잘리지 않도록 변경 */
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 .chat-input-area {
@@ -1646,6 +1647,8 @@ const goToPreparation = () => {
   .chat-messages-container {
     padding-bottom: calc(var(--keyboard-height, 0px) + 8px);
     transition: padding-bottom 0.15s ease-out;
+    overflow-y: auto;
+    overflow-x: hidden;
     -webkit-overflow-scrolling: touch; /* iOS 부드러운 스크롤 */
     scroll-behavior: smooth;
     overscroll-behavior: contain; /* 스크롤 체이닝 방지 */

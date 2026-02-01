@@ -173,12 +173,12 @@ export function useChat() {
 
   // 자동 스크롤 함수
   const scrollToBottom = () => {
-    setTimeout(() => {
-      const chatMainArea = document.querySelector('.chat-main-area');
-      if (chatMainArea) {
-        chatMainArea.scrollTop = chatMainArea.scrollHeight;
+    nextTick(() => {
+      const container = document.querySelector('.chat-messages-container');
+      if (container) {
+        container.scrollTop = container.scrollHeight;
       }
-    }, 100);
+    });
   };
 
   // 긴 답변을 아티팩트로 변환할지 판단하는 함수
