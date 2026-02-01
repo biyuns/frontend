@@ -146,6 +146,10 @@ import {
   removeUserInfo,
   type UserInfo
 } from '../utils/auth'
+import { getApiBaseUrl } from '../utils/ports-config'
+
+// API 기본 URL (프로덕션에서는 Railway 백엔드 URL 사용)
+const API_BASE_URL = getApiBaseUrl()
 
 // Permissions 타입 정의
 interface Permissions {
@@ -210,7 +214,7 @@ const checkAdminAuth = async () => {
 
   try {
     // 백엔드에서 현재 사용자 정보 확인
-    const response = await fetch('/api/member/me', {
+    const response = await fetch(`${API_BASE_URL}/member/me`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -235,7 +239,7 @@ const checkAdminAuth = async () => {
     setUserInfo(userData)
 
     // 관리자 권한 정보 조회 (dev 또는 admin)
-    const roleResponse = await fetch('/api/admin/me/role', {
+    const roleResponse = await fetch(`${API_BASE_URL}/admin/me/role`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -279,7 +283,7 @@ const handleLogin = async () => {
   isLoggingIn.value = true
 
   try {
-    const response = await fetch('/api/member/signin', {
+    const response = await fetch(`${API_BASE_URL}/member/signin`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -317,7 +321,7 @@ const handleLogin = async () => {
 
 const handleLogout = async () => {
   try {
-    await fetch('/api/member/logout', {
+    await fetch(`${API_BASE_URL}/member/logout`, {
       method: 'POST',
       credentials: 'include',
       headers: {
