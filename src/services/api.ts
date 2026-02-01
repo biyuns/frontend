@@ -3,8 +3,21 @@ const log = createLogger('API');
 
 // API 기본 설정 및 서비스
 import { getApiBaseUrl } from '../utils/ports-config';
+import { getUserInfo } from '../utils/auth';
 
 const API_BASE_URL = getApiBaseUrl();
+
+// 사용자 정보를 헤더로 가져오는 헬퍼 함수
+const getUserHeaders = (): Record<string, string> => {
+  const userInfo = getUserInfo();
+  if (userInfo) {
+    return {
+      'X-User-Email': userInfo.email || '',
+      'X-User-Name': userInfo.name || userInfo.nickname || '',
+    };
+  }
+  return {};
+};
 
 // API 요청을 위한 기본 fetch 함수
 async function apiRequest<T>(
@@ -682,6 +695,13 @@ export interface KnowledgeEntry {
   source_file: string;
   raw_data: Record<string, unknown>;
   is_indexed: boolean;
+  // 업로더 정보
+  uploaded_by: string | null;
+  uploaded_by_name: string | null;
+  uploaded_at: string | null;
+  updated_by: string | null;
+  updated_by_name: string | null;
+  updated_at: string | null;
 }
 
 export interface KnowledgeEntriesResponse {
@@ -752,7 +772,8 @@ export const knowledgeAPI = {
   createEntry: (fileName: string, data: Record<string, unknown>): Promise<{ success: boolean; entry: KnowledgeEntry }> => {
     return apiRequest<{ success: boolean; entry: KnowledgeEntry }>(`/knowledge/files/${fileName}/entries`, {
       method: 'POST',
-      body: JSON.stringify(data)
+      body: JSON.stringify(data),
+      headers: getUserHeaders()
     });
   },
 
@@ -760,7 +781,8 @@ export const knowledgeAPI = {
   updateEntry: (fileName: string, entryId: string, data: Record<string, unknown>): Promise<{ success: boolean; entry: KnowledgeEntry }> => {
     return apiRequest<{ success: boolean; entry: KnowledgeEntry }>(`/knowledge/files/${fileName}/entries/${entryId}`, {
       method: 'PUT',
-      body: JSON.stringify(data)
+      body: JSON.stringify(data),
+      headers: getUserHeaders()
     });
   },
 

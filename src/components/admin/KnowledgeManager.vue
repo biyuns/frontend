@@ -105,6 +105,7 @@
             <th class="col-category">카테고리</th>
             <th v-if="showCampusColumn" class="col-campus">캠퍼스</th>
             <th class="col-content">내용 미리보기</th>
+            <th class="col-uploader">작성자</th>
             <th class="col-actions">작업</th>
           </tr>
         </thead>
@@ -121,6 +122,19 @@
             </td>
             <td class="col-content">
               <span class="content-preview">{{ truncate(entry.content, 100) }}</span>
+            </td>
+            <td class="col-uploader">
+              <div v-if="entry.uploaded_by || entry.updated_by" class="uploader-info">
+                <span v-if="entry.updated_by" class="uploader-name" :title="`수정: ${entry.updated_by}`">
+                  {{ entry.updated_by_name || entry.updated_by.split('@')[0] }}
+                </span>
+                <span v-else-if="entry.uploaded_by" class="uploader-name" :title="`등록: ${entry.uploaded_by}`">
+                  {{ entry.uploaded_by_name || entry.uploaded_by.split('@')[0] }}
+                </span>
+                <span v-if="entry.updated_at" class="uploader-date">{{ formatDate(entry.updated_at) }}</span>
+                <span v-else-if="entry.uploaded_at" class="uploader-date">{{ formatDate(entry.uploaded_at) }}</span>
+              </div>
+              <span v-else class="no-uploader">-</span>
             </td>
             <td class="col-actions">
               <button class="action-btn view" @click="openViewModal(entry)" title="보기">
@@ -204,6 +218,25 @@
             <div class="field-group">
               <label>내용</label>
               <div class="field-value content-full">{{ selectedEntry?.content }}</div>
+            </div>
+            <!-- 업로더 정보 -->
+            <div v-if="selectedEntry?.uploaded_by || selectedEntry?.updated_by" class="uploader-section">
+              <div v-if="selectedEntry?.uploaded_by" class="field-group">
+                <label>등록자</label>
+                <div class="field-value uploader-detail">
+                  <span class="uploader-email">{{ selectedEntry.uploaded_by }}</span>
+                  <span v-if="selectedEntry.uploaded_by_name" class="uploader-name-detail">({{ selectedEntry.uploaded_by_name }})</span>
+                  <span v-if="selectedEntry.uploaded_at" class="uploader-time">{{ formatDateTime(selectedEntry.uploaded_at) }}</span>
+                </div>
+              </div>
+              <div v-if="selectedEntry?.updated_by" class="field-group">
+                <label>최근 수정자</label>
+                <div class="field-value uploader-detail">
+                  <span class="uploader-email">{{ selectedEntry.updated_by }}</span>
+                  <span v-if="selectedEntry.updated_by_name" class="uploader-name-detail">({{ selectedEntry.updated_by_name }})</span>
+                  <span v-if="selectedEntry.updated_at" class="uploader-time">{{ formatDateTime(selectedEntry.updated_at) }}</span>
+                </div>
+              </div>
             </div>
             <div class="field-group">
               <label>원본 데이터</label>
@@ -397,6 +430,27 @@ const canDelete = computed(() => {
 const truncate = (text: string, length: number): string => {
   if (!text) return ''
   return text.length > length ? text.slice(0, length) + '...' : text
+}
+
+const formatDate = (dateString: string): string => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  return date.toLocaleDateString('ko-KR', {
+    month: 'short',
+    day: 'numeric'
+  })
+}
+
+const formatDateTime = (dateString: string): string => {
+  if (!dateString) return ''
+  const date = new Date(dateString)
+  return date.toLocaleString('ko-KR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit'
+  })
 }
 
 const showToast = (message: string, type: 'success' | 'error' = 'success') => {
@@ -954,6 +1008,60 @@ onMounted(() => {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.col-uploader {
+  width: 120px;
+  white-space: nowrap;
+}
+
+.uploader-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.uploader-name {
+  font-size: 12px;
+  color: #374151;
+  font-weight: 500;
+}
+
+.uploader-date {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.no-uploader {
+  color: #d1d5db;
+  font-size: 12px;
+}
+
+.uploader-section {
+  margin-top: 16px;
+  padding-top: 16px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.uploader-detail {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.uploader-email {
+  color: #374151;
+}
+
+.uploader-name-detail {
+  color: #6b7280;
+}
+
+.uploader-time {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-left: auto;
 }
 
 .action-btn {
