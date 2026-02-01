@@ -1,7 +1,9 @@
 <template>
   <aside class="admin-sidebar">
     <nav class="sidebar-nav">
+      <!-- 대시보드: dev, admin 모두 접근 가능 -->
       <button
+        v-if="permissions.dashboard"
         class="nav-item"
         :class="{ active: activeMenu === 'dashboard' }"
         @click="$emit('menuChange', 'dashboard')"
@@ -14,7 +16,10 @@
         </svg>
         <span>대시보드</span>
       </button>
+
+      <!-- 회원 관리: admin만 접근 가능 -->
       <button
+        v-if="permissions.user_management"
         class="nav-item"
         :class="{ active: activeMenu === 'users' }"
         @click="$emit('menuChange', 'users')"
@@ -27,7 +32,10 @@
         </svg>
         <span>회원 관리</span>
       </button>
+
+      <!-- DB 브라우저: admin만 접근 가능 -->
       <button
+        v-if="permissions.db_browser"
         class="nav-item"
         :class="{ active: activeMenu === 'database' }"
         @click="$emit('menuChange', 'database')"
@@ -39,7 +47,10 @@
         </svg>
         <span>DB 브라우저</span>
       </button>
+
+      <!-- 콘텐츠 관리: dev, admin 모두 접근 가능 -->
       <button
+        v-if="permissions.content_management"
         class="nav-item"
         :class="{ active: activeMenu === 'content' }"
         @click="$emit('menuChange', 'content')"
@@ -53,7 +64,10 @@
         </svg>
         <span>콘텐츠 관리</span>
       </button>
+
+      <!-- 지식 관리: dev, admin 모두 접근 가능 -->
       <button
+        v-if="permissions.knowledge_management"
         class="nav-item"
         :class="{ active: activeMenu === 'knowledge' }"
         @click="$emit('menuChange', 'knowledge')"
@@ -67,12 +81,29 @@
         <span>지식 관리</span>
       </button>
     </nav>
+
+    <!-- 권한 레벨 표시 -->
+    <div class="role-badge" :class="adminRole">
+      <span v-if="adminRole === 'admin'">Admin</span>
+      <span v-else-if="adminRole === 'dev'">Developer</span>
+    </div>
   </aside>
 </template>
 
 <script setup lang="ts">
+interface Permissions {
+  dashboard: boolean
+  content_management: boolean
+  knowledge_management: boolean
+  user_management: boolean
+  db_browser: boolean
+  role_management: boolean
+}
+
 defineProps<{
   activeMenu: string
+  adminRole: 'dev' | 'admin' | null
+  permissions: Permissions
 }>()
 
 defineEmits<{
@@ -153,5 +184,43 @@ defineEmits<{
     width: 18px;
     height: 18px;
   }
+
+  .role-badge {
+    display: none;
+  }
+}
+
+/* Role Badge 스타일 */
+.role-badge {
+  position: absolute;
+  bottom: 24px;
+  left: 12px;
+  right: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.role-badge.admin {
+  background-color: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.role-badge.dev {
+  background-color: #eff6ff;
+  color: #2563eb;
+  border: 1px solid #bfdbfe;
+}
+
+/* Sidebar position relative for role badge */
+.admin-sidebar {
+  position: relative;
 }
 </style>

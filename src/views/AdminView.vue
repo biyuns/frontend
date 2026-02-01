@@ -47,8 +47,8 @@
       </div>
     </div>
 
-    <!-- 권한 없음 -->
-    <div v-else-if="!userIsAdmin" class="access-denied">
+    <!-- 권한 없음 (dev, admin 아님) -->
+    <div v-else-if="!hasAdminAccess" class="access-denied">
       <div class="auth-card">
         <div class="auth-icon denied">
           <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -57,7 +57,7 @@
           </svg>
         </div>
         <h2>접근 권한 없음</h2>
-        <p>관리자 권한이 필요합니다.</p>
+        <p>개발자 또는 관리자 권한이 필요합니다.</p>
         <p class="sub-text">현재 계정: {{ currentUser?.email }}</p>
         <div class="action-buttons">
           <button @click="handleLogout" class="logout-btn">다른 계정으로 로그인</button>
@@ -72,14 +72,18 @@
       <div class="admin-body">
         <AdminSidebar
           :activeMenu="activeMenu"
+          :adminRole="adminRole"
+          :permissions="permissions"
           @menuChange="handleMenuChange"
         />
         <main class="admin-main">
-          <UserManagement v-if="activeMenu === 'users'" />
-          <DatabaseBrowser v-else-if="activeMenu === 'database'" />
-          <ContentManager v-else-if="activeMenu === 'content'" />
-          <KnowledgeManager v-else-if="activeMenu === 'knowledge'" />
-          <div v-else-if="activeMenu === 'dashboard'" class="dashboard-content">
+          <!-- admin 전용 메뉴 -->
+          <UserManagement v-if="activeMenu === 'users' && permissions.user_management" />
+          <DatabaseBrowser v-else-if="activeMenu === 'database' && permissions.db_browser" />
+          <!-- dev/admin 공용 메뉴 -->
+          <ContentManager v-else-if="activeMenu === 'content' && permissions.content_management" />
+          <KnowledgeManager v-else-if="activeMenu === 'knowledge' && permissions.knowledge_management" />
+          <div v-else-if="activeMenu === 'dashboard' && permissions.dashboard" class="dashboard-content">
             <h2 class="section-title">대시보드</h2>
             <div class="stats-grid">
               <StatsCard
@@ -121,7 +125,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import AdminHeader from '../components/admin/AdminHeader.vue'
 import AdminSidebar from '../components/admin/AdminSidebar.vue'
@@ -141,14 +145,35 @@ import {
   type UserInfo
 } from '../utils/auth'
 
+// Permissions 타입 정의
+interface Permissions {
+  dashboard: boolean
+  content_management: boolean
+  knowledge_management: boolean
+  user_management: boolean
+  db_browser: boolean
+  role_management: boolean
+}
+
 const router = useRouter()
 const activeMenu = ref('dashboard')
 
 // 인증 상태
 const isLoading = ref(true)
 const isAuthenticated = ref(false)
-const userIsAdmin = ref(false)
+const adminRole = ref<'dev' | 'admin' | null>(null)
+const permissions = ref<Permissions>({
+  dashboard: false,
+  content_management: false,
+  knowledge_management: false,
+  user_management: false,
+  db_browser: false,
+  role_management: false,
+})
 const currentUser = ref<UserInfo | null>(null)
+
+// dev 또는 admin 권한이 있는지 체크
+const hasAdminAccess = computed(() => adminRole.value === 'dev' || adminRole.value === 'admin')
 
 // 로그인 폼
 const loginEmail = ref('')
@@ -201,14 +226,39 @@ const checkAdminAuth = async () => {
     const userData = await response.json()
     currentUser.value = userData
     isAuthenticated.value = true
-    userIsAdmin.value = userData.is_admin === true
 
     // 로컬 스토리지 업데이트
     setUserInfo(userData)
 
-    if (userIsAdmin.value) {
-      // 관리자면 통계 로드
-      await loadStats()
+    // 관리자 권한 정보 조회 (dev 또는 admin)
+    const roleResponse = await fetch('/api/admin/me/role', {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+    })
+
+    if (roleResponse.ok) {
+      const roleData = await roleResponse.json()
+      adminRole.value = roleData.admin_role
+      permissions.value = roleData.permissions
+
+      // dev/admin 권한이 있으면 통계 로드
+      if (roleData.admin_role === 'dev' || roleData.admin_role === 'admin') {
+        await loadStats()
+      }
+    } else {
+      // 권한 조회 실패 시 기본값 유지 (일반 사용자)
+      adminRole.value = null
+      permissions.value = {
+        dashboard: false,
+        content_management: false,
+        knowledge_management: false,
+        user_management: false,
+        db_browser: false,
+        role_management: false,
+      }
     }
   } catch (error) {
     console.error('인증 확인 실패:', error)
@@ -250,8 +300,8 @@ const handleLogin = async () => {
     await checkAdminAuth()
 
     // 관리자가 아닌 경우 에러 표시
-    if (!userIsAdmin.value) {
-      loginError.value = '관리자 권한이 없는 계정입니다.'
+    if (!hasAdminAccess.value) {
+      loginError.value = '개발자 또는 관리자 권한이 없는 계정입니다.'
     }
   } catch (error) {
     loginError.value = error instanceof Error ? error.message : '로그인에 실패했습니다.'
@@ -276,7 +326,15 @@ const handleLogout = async () => {
   removeAccessToken()
   removeUserInfo()
   isAuthenticated.value = false
-  userIsAdmin.value = false
+  adminRole.value = null
+  permissions.value = {
+    dashboard: false,
+    content_management: false,
+    knowledge_management: false,
+    user_management: false,
+    db_browser: false,
+    role_management: false,
+  }
   currentUser.value = null
   loginEmail.value = ''
   loginPassword.value = ''
