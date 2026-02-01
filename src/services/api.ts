@@ -364,6 +364,30 @@ export interface ChatHistoryDetailAdmin {
   created_at: string | null;
 }
 
+export interface ChatHistoryExportItem {
+  id: string;
+  title: string;
+  user: ChatHistoryUserInfo | null;
+  created_at: string | null;
+  messages: {
+    is_user: boolean;
+    message: string;
+    model_name: string | null;
+    created_at: string | null;
+  }[];
+}
+
+export interface ChatHistoryExportResponse {
+  export_date: string;
+  period: {
+    start: string;
+    end: string;
+  };
+  total_sessions: number;
+  total_messages: number;
+  data: ChatHistoryExportItem[];
+}
+
 // 관리자 API
 export const adminAPI = {
   // 회원 목록 조회
@@ -466,12 +490,16 @@ export const adminAPI = {
     limit?: number;
     search?: string;
     user_id?: number;
+    start_date?: string;
+    end_date?: string;
   } = {}): Promise<ChatHistoryAdminResponse> => {
     const queryParams = new URLSearchParams();
     if (params.page) queryParams.append('page', params.page.toString());
     if (params.limit) queryParams.append('limit', params.limit.toString());
     if (params.search) queryParams.append('search', params.search);
     if (params.user_id) queryParams.append('user_id', params.user_id.toString());
+    if (params.start_date) queryParams.append('start_date', params.start_date);
+    if (params.end_date) queryParams.append('end_date', params.end_date);
 
     const queryString = queryParams.toString();
     const endpoint = `/admin/chat-histories${queryString ? `?${queryString}` : ''}`;
@@ -492,6 +520,17 @@ export const adminAPI = {
   deleteChatHistory: async (chatId: string): Promise<{ message: string }> => {
     return apiRequest<{ message: string }>(`/admin/chat-histories/${chatId}`, {
       method: 'DELETE',
+    });
+  },
+
+  // 채팅 기록 대량 내보내기
+  exportChatHistories: async (startDate: string, endDate: string): Promise<ChatHistoryExportResponse> => {
+    const queryParams = new URLSearchParams();
+    queryParams.append('start_date', startDate);
+    queryParams.append('end_date', endDate);
+
+    return apiRequest<ChatHistoryExportResponse>(`/admin/chat-histories/export/bulk?${queryParams.toString()}`, {
+      method: 'GET',
     });
   },
 };

@@ -1,6 +1,16 @@
 <template>
   <div class="chat-log-viewer">
-    <h2 class="section-title">채팅 기록 관리</h2>
+    <div class="header">
+      <h2 class="section-title">채팅 기록 관리</h2>
+      <button class="export-all-btn" @click="showExportModal = true">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        기간별 내보내기
+      </button>
+    </div>
 
     <div class="viewer-layout">
       <!-- 채팅 세션 목록 -->
@@ -8,6 +18,24 @@
         <div class="panel-header">
           <h3>채팅 세션</h3>
           <span class="session-count">{{ total }}개</span>
+        </div>
+
+        <!-- 날짜 필터 -->
+        <div class="date-filter">
+          <div class="date-input-group">
+            <label>시작일</label>
+            <input type="date" v-model="startDate" @change="handleDateFilter" />
+          </div>
+          <div class="date-input-group">
+            <label>종료일</label>
+            <input type="date" v-model="endDate" @change="handleDateFilter" />
+          </div>
+          <button v-if="startDate || endDate" class="clear-filter-btn" @click="clearDateFilter" title="필터 초기화">
+            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
         </div>
 
         <div class="search-box">
@@ -142,6 +170,39 @@
         </div>
       </div>
     </div>
+
+    <!-- 기간별 내보내기 모달 -->
+    <div v-if="showExportModal" class="modal-overlay" @click.self="showExportModal = false">
+      <div class="modal-content export-modal">
+        <h3>채팅 기록 내보내기</h3>
+        <p class="export-description">선택한 기간의 모든 채팅 기록을 JSON 파일로 내보냅니다.</p>
+
+        <div class="export-form">
+          <div class="export-date-row">
+            <div class="export-date-group">
+              <label>시작일</label>
+              <input type="date" v-model="exportStartDate" />
+            </div>
+            <div class="export-date-group">
+              <label>종료일</label>
+              <input type="date" v-model="exportEndDate" />
+            </div>
+          </div>
+          <p class="export-note">* 최대 90일까지 내보내기 가능합니다.</p>
+        </div>
+
+        <div class="modal-actions">
+          <button class="cancel-btn" @click="showExportModal = false">취소</button>
+          <button
+            class="export-btn"
+            :disabled="!exportStartDate || !exportEndDate || exporting"
+            @click="handleBulkExport"
+          >
+            {{ exporting ? '내보내기 중...' : '내보내기' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -162,6 +223,16 @@ const total = ref(0)
 const showDeleteModal = ref(false)
 const deleting = ref(false)
 
+// 날짜 필터
+const startDate = ref('')
+const endDate = ref('')
+
+// 내보내기 모달
+const showExportModal = ref(false)
+const exportStartDate = ref('')
+const exportEndDate = ref('')
+const exporting = ref(false)
+
 let searchTimeout: ReturnType<typeof setTimeout> | null = null
 
 const loadSessions = async () => {
@@ -171,6 +242,8 @@ const loadSessions = async () => {
       page: currentPage.value,
       limit: 20,
       search: searchQuery.value || undefined,
+      start_date: startDate.value || undefined,
+      end_date: endDate.value || undefined,
     })
 
     sessions.value = response.items
@@ -180,6 +253,45 @@ const loadSessions = async () => {
     console.error('채팅 세션 로드 실패:', error)
   } finally {
     loadingSessions.value = false
+  }
+}
+
+const handleDateFilter = () => {
+  currentPage.value = 1
+  loadSessions()
+}
+
+const clearDateFilter = () => {
+  startDate.value = ''
+  endDate.value = ''
+  currentPage.value = 1
+  loadSessions()
+}
+
+const handleBulkExport = async () => {
+  if (!exportStartDate.value || !exportEndDate.value) return
+
+  exporting.value = true
+  try {
+    const response = await adminAPI.exportChatHistories(exportStartDate.value, exportEndDate.value)
+
+    // JSON 파일 다운로드
+    const blob = new Blob([JSON.stringify(response, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `chat_export_${exportStartDate.value}_${exportEndDate.value}.json`
+    a.click()
+    URL.revokeObjectURL(url)
+
+    showExportModal.value = false
+    alert(`내보내기 완료: ${response.total_sessions}개 세션, ${response.total_messages}개 메시지`)
+  } catch (error: unknown) {
+    console.error('내보내기 실패:', error)
+    const errorMessage = error instanceof Error ? error.message : '알 수 없는 오류'
+    alert(`내보내기 실패: ${errorMessage}`)
+  } finally {
+    exporting.value = false
   }
 }
 
@@ -348,11 +460,37 @@ onMounted(async () => {
   max-width: 1400px;
 }
 
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
 .section-title {
   font-size: 24px;
   font-weight: 700;
   color: #1f2937;
-  margin-bottom: 24px;
+  margin: 0;
+}
+
+.export-all-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: #02478A;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.export-all-btn:hover {
+  background: #023663;
 }
 
 .viewer-layout {
@@ -361,6 +499,59 @@ onMounted(async () => {
   gap: 20px;
   height: calc(100vh - 200px);
   min-height: 500px;
+}
+
+/* 날짜 필터 */
+.date-filter {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  background: #f9fafb;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.date-input-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.date-input-group label {
+  font-size: 11px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.date-input-group input {
+  padding: 6px 8px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 12px;
+  width: 100%;
+}
+
+.date-input-group input:focus {
+  outline: none;
+  border-color: #02478A;
+}
+
+.clear-filter-btn {
+  display: flex;
+  align-items: flex-end;
+  padding: 6px;
+  background: transparent;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  color: #6b7280;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.clear-filter-btn:hover {
+  background: #fef2f2;
+  border-color: #ef4444;
+  color: #ef4444;
 }
 
 /* 세션 패널 */
@@ -823,6 +1014,79 @@ onMounted(async () => {
 }
 
 .confirm-delete-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* 내보내기 모달 */
+.export-modal {
+  max-width: 450px;
+}
+
+.export-description {
+  color: #6b7280;
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+
+.export-form {
+  margin-bottom: 20px;
+}
+
+.export-date-row {
+  display: flex;
+  gap: 16px;
+}
+
+.export-date-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.export-date-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.export-date-group input {
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.export-date-group input:focus {
+  outline: none;
+  border-color: #02478A;
+  box-shadow: 0 0 0 3px rgba(2, 71, 138, 0.1);
+}
+
+.export-note {
+  font-size: 12px;
+  color: #9ca3af;
+  margin-top: 12px;
+}
+
+.export-btn {
+  padding: 10px 20px;
+  background: #02478A;
+  border: none;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.export-btn:hover:not(:disabled) {
+  background: #023663;
+}
+
+.export-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
 }
