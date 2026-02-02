@@ -3,8 +3,21 @@ const log = createLogger('API');
 
 // API 기본 설정 및 서비스
 import { getApiBaseUrl } from '../utils/ports-config';
+import { getUserInfo } from '../utils/auth';
 
 const API_BASE_URL = getApiBaseUrl();
+
+// 사용자 정보를 헤더로 가져오는 헬퍼 함수
+const getUserHeaders = (): Record<string, string> => {
+  const userInfo = getUserInfo();
+  if (userInfo) {
+    return {
+      'X-User-Email': userInfo.email || '',
+      'X-User-Name': userInfo.name || userInfo.nickname || '',
+    };
+  }
+  return {};
+};
 
 // API 요청을 위한 기본 fetch 함수
 async function apiRequest<T>(
@@ -232,6 +245,8 @@ export const healthAPI = {
 };
 
 // 관리자 API 타입
+export type AdminRole = 'dev' | 'admin' | null;
+
 export interface UserListItem {
   id: number;
   name: string;
@@ -239,6 +254,7 @@ export interface UserListItem {
   nickname: string;
   is_pro: boolean;
   is_admin: boolean;
+  admin_role: AdminRole;
   oauth_provider: string | null;
   created_at: string;
 }
@@ -252,6 +268,7 @@ export interface UserDetail {
   birth_date: string | null;
   is_pro: boolean;
   is_admin: boolean;
+  admin_role: AdminRole;
   verified_email: string | null;
   oauth_provider: string | null;
   oauth_id: string | null;
@@ -304,6 +321,73 @@ export interface TablesListResponse {
   tables: TableInfo[];
 }
 
+// 채팅 기록 관리 관련 타입 (Admin 전용)
+export interface ChatHistoryUserInfo {
+  id: number;
+  name: string;
+  email: string;
+  nickname: string;
+}
+
+export interface ChatHistoryListItem {
+  id: string;  // UUID
+  title: string;
+  user_id: number;
+  user: ChatHistoryUserInfo | null;
+  message_count: number;
+  last_message_at: string | null;
+  created_at: string | null;
+}
+
+export interface ChatHistoryAdminResponse {
+  items: ChatHistoryListItem[];
+  total: number;
+  page: number;
+  limit: number;
+  total_pages: number;
+}
+
+export interface ChatMessageAdminItem {
+  id: number;
+  is_user: boolean;
+  message: string;
+  model_name: string | null;
+  created_at: string | null;
+}
+
+export interface ChatHistoryDetailAdmin {
+  id: string;  // UUID
+  title: string;
+  user_id: number;
+  user: ChatHistoryUserInfo | null;
+  messages: ChatMessageAdminItem[];
+  created_at: string | null;
+}
+
+export interface ChatHistoryExportItem {
+  id: string;
+  title: string;
+  user: ChatHistoryUserInfo | null;
+  created_at: string | null;
+  messages: {
+    is_user: boolean;
+    message: string;
+    model_name: string | null;
+    created_at: string | null;
+  }[];
+}
+
+export interface ChatHistoryExportResponse {
+  export_date: string;
+  period: {
+    start: string;
+    end: string;
+  };
+  total_sessions: number;
+  total_messages: number;
+  data: ChatHistoryExportItem[];
+}
+
 // 관리자 API
 export const adminAPI = {
   // 회원 목록 조회
@@ -339,7 +423,7 @@ export const adminAPI = {
   // 회원 권한 수정
   updateUser: async (userId: number, data: {
     is_pro?: boolean;
-    is_admin?: boolean;
+    admin_role?: AdminRole;
   }): Promise<UserDetail> => {
     return apiRequest<UserDetail>(`/admin/users/${userId}`, {
       method: 'PUT',
@@ -395,6 +479,74 @@ export const adminAPI = {
   deleteTableRow: async (tableName: string, rowId: number): Promise<{ message: string }> => {
     return apiRequest<{ message: string }>(`/admin/db/tables/${tableName}/${rowId}`, {
       method: 'DELETE',
+    });
+  },
+
+  // ========== 채팅 기록 관리 (Admin 전용) ==========
+
+  // 채팅 기록 목록 조회
+  getChatHistories: async (params: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    user_id?: number;
+    start_date?: string;
+    end_date?: string;
+  } = {}): Promise<ChatHistoryAdminResponse> => {
+    const queryParams = new URLSearchParams();
+    if (params.page) queryParams.append('page', params.page.toString());
+    if (params.limit) queryParams.append('limit', params.limit.toString());
+    if (params.search) queryParams.append('search', params.search);
+    if (params.user_id) queryParams.append('user_id', params.user_id.toString());
+    if (params.start_date) queryParams.append('start_date', params.start_date);
+    if (params.end_date) queryParams.append('end_date', params.end_date);
+
+    const queryString = queryParams.toString();
+    const endpoint = `/admin/chat-histories${queryString ? `?${queryString}` : ''}`;
+
+    return apiRequest<ChatHistoryAdminResponse>(endpoint, {
+      method: 'GET',
+    });
+  },
+
+  // 채팅 기록 상세 조회
+  getChatHistoryDetail: async (chatId: string): Promise<ChatHistoryDetailAdmin> => {
+    return apiRequest<ChatHistoryDetailAdmin>(`/admin/chat-histories/${chatId}`, {
+      method: 'GET',
+    });
+  },
+
+  // 채팅 기록 삭제
+  deleteChatHistory: async (chatId: string): Promise<{ message: string }> => {
+    return apiRequest<{ message: string }>(`/admin/chat-histories/${chatId}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // 채팅 기록 대량 내보내기
+  exportChatHistories: async (startDate: string, endDate: string): Promise<ChatHistoryExportResponse> => {
+    const queryParams = new URLSearchParams();
+    queryParams.append('start_date', startDate);
+    queryParams.append('end_date', endDate);
+
+    return apiRequest<ChatHistoryExportResponse>(`/admin/chat-histories/export/bulk?${queryParams.toString()}`, {
+      method: 'GET',
+    });
+  },
+
+  // ========== 데이터베이스 백업 (Admin 전용) ==========
+
+  // 전체 데이터베이스 백업 (JSON)
+  createFullBackup: async (): Promise<Record<string, unknown>> => {
+    return apiRequest<Record<string, unknown>>('/admin/backup/full', {
+      method: 'GET',
+    });
+  },
+
+  // 특정 테이블 백업 (JSON)
+  backupTable: async (tableName: string): Promise<Record<string, unknown>> => {
+    return apiRequest<Record<string, unknown>>(`/admin/backup/table/${tableName}`, {
+      method: 'GET',
     });
   },
 };
@@ -678,6 +830,13 @@ export interface KnowledgeEntry {
   source_file: string;
   raw_data: Record<string, unknown>;
   is_indexed: boolean;
+  // 업로더 정보
+  uploaded_by: string | null;
+  uploaded_by_name: string | null;
+  uploaded_at: string | null;
+  updated_by: string | null;
+  updated_by_name: string | null;
+  updated_at: string | null;
 }
 
 export interface KnowledgeEntriesResponse {
@@ -748,7 +907,8 @@ export const knowledgeAPI = {
   createEntry: (fileName: string, data: Record<string, unknown>): Promise<{ success: boolean; entry: KnowledgeEntry }> => {
     return apiRequest<{ success: boolean; entry: KnowledgeEntry }>(`/knowledge/files/${fileName}/entries`, {
       method: 'POST',
-      body: JSON.stringify(data)
+      body: JSON.stringify(data),
+      headers: getUserHeaders()
     });
   },
 
@@ -756,7 +916,8 @@ export const knowledgeAPI = {
   updateEntry: (fileName: string, entryId: string, data: Record<string, unknown>): Promise<{ success: boolean; entry: KnowledgeEntry }> => {
     return apiRequest<{ success: boolean; entry: KnowledgeEntry }>(`/knowledge/files/${fileName}/entries/${entryId}`, {
       method: 'PUT',
-      body: JSON.stringify(data)
+      body: JSON.stringify(data),
+      headers: getUserHeaders()
     });
   },
 
