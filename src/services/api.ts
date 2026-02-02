@@ -892,6 +892,7 @@ export const knowledgeAPI = {
     search?: string;
     category?: string;
     campus?: string;
+    sort?: 'index' | 'recent' | 'title';
   } = {}): Promise<KnowledgeEntriesResponse> => {
     const queryParams = new URLSearchParams();
     if (params.page) queryParams.append('page', params.page.toString());
@@ -899,6 +900,7 @@ export const knowledgeAPI = {
     if (params.search) queryParams.append('search', params.search);
     if (params.category) queryParams.append('category', params.category);
     if (params.campus) queryParams.append('campus', params.campus);
+    if (params.sort) queryParams.append('sort', params.sort);
 
     const queryString = queryParams.toString();
     const endpoint = `/knowledge/files/${fileName}${queryString ? `?${queryString}` : ''}`;

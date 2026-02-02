@@ -86,6 +86,12 @@
         <option v-for="campus in campuses" :key="campus" :value="campus">{{ campus }}</option>
       </select>
 
+      <select v-model="sortOrder" class="filter-select sort-select" @change="loadEntries">
+        <option value="index">기본순</option>
+        <option value="recent">최근등록순</option>
+        <option value="title">제목순</option>
+      </select>
+
       <button v-if="canCreate" class="add-btn" @click="openCreateModal">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -110,7 +116,7 @@
             <th class="col-category">카테고리</th>
             <th v-if="showCampusColumn" class="col-campus">캠퍼스</th>
             <th class="col-content">내용 미리보기</th>
-            <th class="col-uploader">작성자</th>
+            <th class="col-uploader">등록정보</th>
             <th class="col-actions">작업</th>
           </tr>
         </thead>
@@ -387,6 +393,7 @@ const totalPages = ref(0)
 const searchQuery = ref('')
 const selectedCategory = ref('')
 const selectedCampus = ref('')
+const sortOrder = ref<'index' | 'recent' | 'title'>('recent')  // 기본값: 최근등록순
 const categories = ref<string[]>([])
 const campuses = ref<string[]>([])
 
@@ -523,6 +530,7 @@ const loadEntries = async () => {
       search: searchQuery.value || undefined,
       category: selectedCategory.value || undefined,
       campus: selectedCampus.value || undefined,
+      sort: sortOrder.value,
     })
     entries.value = response.items
     total.value = response.total
@@ -953,6 +961,13 @@ onMounted(() => {
   font-size: 14px;
   color: #374151;
   cursor: pointer;
+}
+
+.sort-select {
+  background: #eff6ff;
+  border-color: #93c5fd;
+  color: #1e40af;
+  min-width: 120px;
 }
 
 .add-btn {
