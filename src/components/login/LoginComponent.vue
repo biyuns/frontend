@@ -163,16 +163,16 @@ const handleKakaoLogin = () => {
 /* Footer Styles */
 .common-footer-notice {
   display: flex;
-  justify-content: flex-start;
+  justify-content: center;
   flex-direction: row;
   align-items: center;
   gap: 5px;
-  width: 277px;
+  width: 100%;
   height: 12px;
   box-sizing: border-box;
   position: absolute;
-  left: calc(50% - 138px);
-  top: 710px;
+  bottom: 30px;
+  left: 0;
 }
 
 .footer-text {
