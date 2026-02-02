@@ -8,19 +8,20 @@ import { getUserInfo } from '../utils/auth';
 const API_BASE_URL = getApiBaseUrl();
 
 // 사용자 정보를 헤더로 가져오는 헬퍼 함수
+// HTTP 헤더는 ISO-8859-1 문자만 허용하므로 한글 등은 URL 인코딩 필요
 const getUserHeaders = (): Record<string, string> => {
   const userInfo = getUserInfo();
   if (userInfo) {
     const email = userInfo.email || '';
     const name = userInfo.name || userInfo.nickname || '';
 
-    // 유효한 값이 있을 때만 헤더에 포함
+    // 유효한 값이 있을 때만 헤더에 포함 (URL 인코딩으로 한글 지원)
     const headers: Record<string, string> = {};
     if (email) {
-      headers['X-User-Email'] = email;
+      headers['X-User-Email'] = encodeURIComponent(email);
     }
     if (name) {
-      headers['X-User-Name'] = name;
+      headers['X-User-Name'] = encodeURIComponent(name);
     }
 
     console.log('[Knowledge API] User headers:', headers, '(userInfo:', userInfo, ')');
