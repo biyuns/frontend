@@ -11,11 +11,22 @@ const API_BASE_URL = getApiBaseUrl();
 const getUserHeaders = (): Record<string, string> => {
   const userInfo = getUserInfo();
   if (userInfo) {
-    return {
-      'X-User-Email': userInfo.email || '',
-      'X-User-Name': userInfo.name || userInfo.nickname || '',
-    };
+    const email = userInfo.email || '';
+    const name = userInfo.name || userInfo.nickname || '';
+
+    // 유효한 값이 있을 때만 헤더에 포함
+    const headers: Record<string, string> = {};
+    if (email) {
+      headers['X-User-Email'] = email;
+    }
+    if (name) {
+      headers['X-User-Name'] = name;
+    }
+
+    console.log('[Knowledge API] User headers:', headers, '(userInfo:', userInfo, ')');
+    return headers;
   }
+  console.log('[Knowledge API] No user info found, returning empty headers');
   return {};
 };
 
@@ -905,19 +916,23 @@ export const knowledgeAPI = {
 
   // POST /knowledge/files/{file_name}/entries - 항목 생성
   createEntry: (fileName: string, data: Record<string, unknown>): Promise<{ success: boolean; entry: KnowledgeEntry }> => {
+    const userHeaders = getUserHeaders();
+    console.log('[Knowledge API] Creating entry with headers:', userHeaders);
     return apiRequest<{ success: boolean; entry: KnowledgeEntry }>(`/knowledge/files/${fileName}/entries`, {
       method: 'POST',
       body: JSON.stringify(data),
-      headers: getUserHeaders()
+      headers: userHeaders
     });
   },
 
   // PUT /knowledge/files/{file_name}/entries/{entry_id} - 항목 수정
   updateEntry: (fileName: string, entryId: string, data: Record<string, unknown>): Promise<{ success: boolean; entry: KnowledgeEntry }> => {
+    const userHeaders = getUserHeaders();
+    console.log('[Knowledge API] Updating entry with headers:', userHeaders);
     return apiRequest<{ success: boolean; entry: KnowledgeEntry }>(`/knowledge/files/${fileName}/entries/${entryId}`, {
       method: 'PUT',
       body: JSON.stringify(data),
-      headers: getUserHeaders()
+      headers: userHeaders
     });
   },
 
