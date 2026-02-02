@@ -474,11 +474,11 @@ onUpdated(() => {
   width: fit-content;
   max-width: calc(100% - 20px); /* 오른쪽 여유 공간 확보 */
   overflow: visible;
-  margin-top:10px;
+  margin-top:3px;
 }
 
 .chat-bubble-wrapper:first-child {
-  margin-top: 200px;
+  margin-top: 5px;
 }
 
 .chat-bubble-wrapper.right {
@@ -493,11 +493,11 @@ onUpdated(() => {
 
 .feedback-container {
   width: 100%;
-  margin-top: 10px;
+  margin-top: 5px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
+  gap: 4px;
   /* 데스크톱에서 기본적으로 숨김 */
   opacity: 0;
   visibility: hidden;

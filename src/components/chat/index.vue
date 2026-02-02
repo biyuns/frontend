@@ -972,7 +972,7 @@ const goToCrew = () => {
   position: relative;
   width: 100%;
   height: 36px;
-  padding: 0 20px 0 10px;
+  padding: 0 20px 0px 26px;
   background: var(--color-bg-primary);
   /* border-right removed to prevent double lines */
   z-index: 10;
@@ -988,7 +988,7 @@ const goToCrew = () => {
   flex-direction: row;
   align-items: center;
   flex: none;
-  gap: 5px;
+  gap: 15px;
   box-sizing: border-box;
   flex-shrink: 1;
   position: relative;
@@ -1003,6 +1003,7 @@ const goToCrew = () => {
   background: url('./icon/-three.svg') no-repeat center;
   background-size: cover;
   object-fit: cover;
+
 }
 
 .eulgpt-logo-svg {
