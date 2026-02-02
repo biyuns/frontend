@@ -7,7 +7,10 @@ export interface UserInfo {
   nickname: string
   is_pro: boolean
   is_admin: boolean
+  admin_role?: 'dev' | 'admin' | null
 }
+
+export type AdminRole = 'admin' | 'dev' | null
 
 export const getAccessToken = (): string | null => {
   return localStorage.getItem('accessToken')
@@ -39,7 +42,7 @@ export const removeUserInfo = (): void => {
   localStorage.removeItem('user_info')
 }
 
-// 관리자 여부 체크
+// 관리자 여부 체크 (순수하게 is_admin만 체크)
 export const isAdmin = (): boolean => {
   // 로컬 개발 환경에서는 admin 접속 허용
   if (import.meta.env.DEV) {
@@ -49,6 +52,18 @@ export const isAdmin = (): boolean => {
 
   const user = getUserInfo()
   return user?.is_admin === true
+}
+
+// 관리자 권한 체크 (admin_role 기반 - dev, admin 모두 포함)
+export const isManager = (): AdminRole => {
+  // 로컬 개발 환경에서는 admin 권한 부여
+  if (import.meta.env.DEV) {
+    console.log('🔓 DEV MODE: Manager access granted')
+    return 'admin'
+  }
+
+  const user = getUserInfo()
+  return user?.admin_role ?? null
 }
 
 // API 요청 시 사용할 헤더
