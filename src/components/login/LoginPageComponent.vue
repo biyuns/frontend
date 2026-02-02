@@ -102,6 +102,11 @@ const router = useRouter()
 
 const API_BASE_URL = getApiBaseUrl()
 
+// 로컬 개발 환경 감지 (localhost 또는 127.0.0.1)
+const isDevelopment = typeof window !== 'undefined' &&
+  (window.location.hostname === 'localhost' ||
+   window.location.hostname === '127.0.0.1')
+
 const email = ref('')
 const password = ref('')
 const showPassword = ref(false)
@@ -232,16 +237,16 @@ const handleMockLogin = async () => {
 /* Footer Styles */
 .common-footer-notice {
   display: flex;
-  justify-content: flex-start;
+  justify-content: center;
   flex-direction: row;
   align-items: center;
   gap: 5px;
-  width: 277px;
+  width: 100%;
   height: 12px;
   box-sizing: border-box;
   position: absolute;
-  left: calc(50% - 138px);
-  top: 710px;
+  bottom: 30px;
+  left: 0;
 }
 
 .footer-text {
