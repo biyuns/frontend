@@ -155,7 +155,7 @@ const handleBadFeedback = () => { sendFeedback('bad'); emit('openDetailedFeedbac
   transition: all 0.2s ease;
 }
 
-/* 🔵 지윤님이 요청하신 #02478A 파란색 테두리 (호버 및 활성화) */
+/* #02478A 파란색 테두리 (호버 및 활성화) */
 .feedback-btn:hover,
 .feedback-btn.active {
   color: #02478A;
@@ -164,7 +164,7 @@ const handleBadFeedback = () => { sendFeedback('bad'); emit('openDetailedFeedbac
 /* 🍞 토스트 알림창 스타일 */
 .feedback-toast {
   position: fixed;
-  bottom: 700px; /* 입력창보다 위로 배치 */
+  bottom: 690px; /* 입력창보다 위로 배치 */
   left: 50%;
   transform: translateX(-50%);
   z-index: 9999;
