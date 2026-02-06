@@ -36,6 +36,19 @@
           <span v-if="isReindexing" class="spinner-small"></span>
           {{ isReindexing ? `재인덱싱 중... ${reindexProgress}%` : '재인덱싱' }}
         </button>
+        <button
+          class="export-btn"
+          @click="handleExportCSV"
+          :disabled="isExporting || !selectedFile"
+        >
+          <svg v-if="!isExporting" xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          <span v-if="isExporting" class="spinner-small"></span>
+          {{ isExporting ? 'CSV 내보내는 중...' : 'CSV 내보내기' }}
+        </button>
       </div>
     </div>
 
@@ -417,6 +430,9 @@ const lastIndexedTime = ref<string | null>(null)
 // JSON 임포트 상태
 const isImporting = ref(false)
 
+// CSV 내보내기 상태
+const isExporting = ref(false)
+
 // 토스트
 const toast = ref({ show: false, type: 'success', message: '' })
 
@@ -725,6 +741,74 @@ const loadLastIndexedTime = async () => {
   }
 }
 
+// CSV 내보내기
+const handleExportCSV = async () => {
+  if (!selectedFile.value || isExporting.value) return
+
+  isExporting.value = true
+  try {
+    // 전체 데이터 조회 (limit 10000)
+    const response = await knowledgeAPI.getEntries(selectedFile.value, {
+      page: 1,
+      limit: 10000,
+      sort: 'index',
+    })
+
+    if (response.items && response.items.length > 0) {
+      const csvContent = convertToCSV(response.items)
+      const date = new Date().toISOString().split('T')[0]
+      const fileName = `지식관리_${selectedFile.value}_${date}.csv`
+      downloadCSV(csvContent, fileName)
+      showToast(`${response.items.length}개 항목을 CSV로 내보냈습니다.`)
+    } else {
+      showToast('내보낼 데이터가 없습니다.', 'error')
+    }
+  } catch (error) {
+    console.error('CSV 내보내기 실패:', error)
+    showToast('CSV 내보내기 중 오류가 발생했습니다.', 'error')
+  } finally {
+    isExporting.value = false
+  }
+}
+
+const convertToCSV = (entries: KnowledgeEntry[]): string => {
+  const BOM = '\uFEFF'
+  const headers = ['ID', '제목', '내용', '카테고리', '서브카테고리', '캠퍼스', '등록자', '등록일', '수정자', '수정일']
+
+  const escapeCSV = (value: unknown): string => {
+    if (value == null) return ''
+    const str = String(value)
+    if (str.includes(',') || str.includes('"') || str.includes('\n')) {
+      return `"${str.replace(/"/g, '""')}"`
+    }
+    return str
+  }
+
+  const rows = entries.map(entry => [
+    entry.id,
+    entry.title,
+    entry.content,
+    entry.category,
+    entry.subcategory,
+    entry.campus,
+    entry.uploaded_by_name || entry.uploaded_by,
+    entry.uploaded_at,
+    entry.updated_by_name || entry.updated_by,
+    entry.updated_at
+  ].map(escapeCSV).join(','))
+
+  return BOM + [headers.join(','), ...rows].join('\n')
+}
+
+const downloadCSV = (csvContent: string, fileName: string): void => {
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+  const link = document.createElement('a')
+  link.href = URL.createObjectURL(blob)
+  link.download = fileName
+  link.click()
+  URL.revokeObjectURL(link.href)
+}
+
 // 초기화
 onMounted(() => {
   loadFiles()
@@ -828,6 +912,30 @@ onMounted(() => {
 
 .reindex-btn.indexing {
   background: #059669;
+}
+
+.export-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 20px;
+  background: #6366f1;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.export-btn:hover:not(:disabled) {
+  background: #4f46e5;
+}
+
+.export-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
 }
 
 .spinner-small {
