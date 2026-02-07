@@ -135,7 +135,7 @@ export const logout = (): void => {
 // Mock 토큰 여부 확인
 export const isMockToken = (): boolean => {
   const token = getAccessToken()
-  return token?.startsWith('dev_mock_token_') ?? false
+  return (token?.startsWith('dev_mock_token_') || token?.startsWith('dev-pro-token-')) ?? false
 }
 
 // API 요청 래퍼 (자동 인증 헤더 포함 + 자동 토큰 갱신)
