@@ -1,191 +1,170 @@
 <template>
   <div class="status-page">
-    <!-- 헤더 섹션 -->
-    <header class="status-header">
-      <div class="header-content">
-        <h1 class="page-title">
-          <span class="title-icon">📊</span>
-          시스템 상태
-        </h1>
-        <p class="page-subtitle">을GPT 서비스의 실시간 상태를 확인하세요</p>
-        <button class="btn-primary" @click="refreshAll" :disabled="isRefreshing">
-          <span v-if="isRefreshing" class="spinner"></span>
+    <HeaderSection />
+
+    <main class="status-main">
+      <!-- 페이지 타이틀 -->
+      <div class="page-header">
+        <span class="page-label">시스템 상태</span>
+        <h1 class="page-title">을GPT 서비스 현황</h1>
+        <p class="page-desc">실시간 서비스 상태를 확인하세요</p>
+      </div>
+
+      <!-- 전체 상태 배너 -->
+      <section class="overall-banner" :class="overallStatusClass">
+        <div class="banner-dot" :class="overallStatusClass"></div>
+        <div class="banner-body">
+          <h2 class="banner-title">{{ overallStatusTitle }}</h2>
+          <p class="banner-desc">{{ overallStatusText }}</p>
+        </div>
+        <button class="refresh-btn" @click="refreshAll" :disabled="isRefreshing">
+          <svg v-if="isRefreshing" class="refresh-icon spinning" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12a9 9 0 1 1-6.219-8.56" />
+          </svg>
+          <svg v-else class="refresh-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+            <path d="M3 3v5h5" />
+            <path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16" />
+            <path d="M16 16h5v5" />
+          </svg>
           <span>{{ isRefreshing ? '확인 중...' : '새로고침' }}</span>
         </button>
-      </div>
-    </header>
-
-    <main class="status-content">
-      <!-- 전체 상태 배너 -->
-      <section class="status-banner" :class="overallStatusClass">
-        <div class="banner-icon">{{ overallStatusIcon }}</div>
-        <div class="banner-text">
-          <h2 class="banner-title">{{ overallStatusTitle }}</h2>
-          <p class="banner-description">{{ overallStatusText }}</p>
-        </div>
-        <div class="banner-indicator" :class="overallStatusClass"></div>
       </section>
 
-      <!-- 서비스 카드 섹션 -->
+      <!-- 서비스 카드 그리드 -->
       <section class="services-section">
-        <h2 class="section-title">서비스 상태</h2>
+        <h2 class="section-heading">서비스 상태</h2>
         <div class="services-grid">
           <!-- Backend API -->
           <article class="service-card" :class="getStatusClass(backendStatus)">
-            <div class="card-header">
-              <div class="service-info">
-                <span class="service-icon">🖥️</span>
-                <h3 class="service-name">Backend API</h3>
+            <div class="card-top">
+              <div class="service-icon-wrap backend">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="2" width="20" height="8" rx="2" ry="2" />
+                  <rect x="2" y="14" width="20" height="8" rx="2" ry="2" />
+                  <line x1="6" y1="6" x2="6.01" y2="6" />
+                  <line x1="6" y1="18" x2="6.01" y2="18" />
+                </svg>
               </div>
-              <span class="status-pill" :class="getStatusClass(backendStatus)">
+              <span class="status-badge" :class="getStatusClass(backendStatus)">
+                <span class="badge-dot" :class="getStatusClass(backendStatus)"></span>
                 {{ getStatusText(backendStatus) }}
               </span>
             </div>
-            <div class="card-body">
-              <div class="stat-row">
-                <span class="stat-label">엔드포인트</span>
-                <span class="stat-value truncate">{{ backendUrl }}</span>
+            <h3 class="service-name">Backend API</h3>
+            <div class="card-details">
+              <div class="detail-row">
+                <span class="detail-label">엔드포인트</span>
+                <span class="detail-value truncate">{{ backendUrl }}</span>
               </div>
-              <div class="stat-row">
-                <span class="stat-label">응답 시간</span>
-                <span class="stat-value highlight">{{ backendResponseTime }}ms</span>
+              <div class="detail-row">
+                <span class="detail-label">응답 시간</span>
+                <span class="detail-value accent">{{ backendResponseTime }}ms</span>
               </div>
-              <div class="stat-row" v-if="backendInfo?.message">
-                <span class="stat-label">상태</span>
-                <span class="stat-value">{{ backendInfo.message }}</span>
+              <div class="detail-row" v-if="backendInfo?.message">
+                <span class="detail-label">메시지</span>
+                <span class="detail-value">{{ backendInfo.message }}</span>
               </div>
             </div>
-            <div class="card-footer">
-              <div class="status-dot" :class="getStatusClass(backendStatus)"></div>
-              <span class="status-time">{{ lastUpdated || '확인 중...' }}</span>
+            <div class="card-bottom">
+              <span class="update-time">{{ lastUpdated || '확인 중...' }}</span>
             </div>
           </article>
 
           <!-- AI-RAG Service -->
           <article class="service-card" :class="getStatusClass(aiRagStatus)">
-            <div class="card-header">
-              <div class="service-info">
-                <span class="service-icon">🤖</span>
-                <h3 class="service-name">AI-RAG Service</h3>
+            <div class="card-top">
+              <div class="service-icon-wrap ai">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M12 2a4 4 0 0 1 4 4v1a2 2 0 0 1 2 2v1a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2V6a4 4 0 0 1 4-4z" />
+                  <path d="M9 18h6" />
+                  <path d="M10 22h4" />
+                  <path d="M12 14v4" />
+                </svg>
               </div>
-              <span class="status-pill" :class="getStatusClass(aiRagStatus)">
+              <span class="status-badge" :class="getStatusClass(aiRagStatus)">
+                <span class="badge-dot" :class="getStatusClass(aiRagStatus)"></span>
                 {{ getStatusText(aiRagStatus) }}
               </span>
             </div>
-            <div class="card-body">
-              <div class="stat-row">
-                <span class="stat-label">엔드포인트</span>
-                <span class="stat-value truncate">{{ aiRagUrl }}</span>
+            <h3 class="service-name">AI-RAG Service</h3>
+            <div class="card-details">
+              <div class="detail-row" v-if="aiRagUrl">
+                <span class="detail-label">엔드포인트</span>
+                <span class="detail-value truncate">{{ aiRagUrl }}</span>
               </div>
-              <div class="stat-row">
-                <span class="stat-label">응답 시간</span>
-                <span class="stat-value highlight">{{ aiRagResponseTime }}ms</span>
+              <div class="detail-row">
+                <span class="detail-label">응답 시간</span>
+                <span class="detail-value accent">{{ aiRagResponseTime }}ms</span>
               </div>
-              <div class="stat-row" v-if="aiRagInfo?.model">
-                <span class="stat-label">AI 모델</span>
-                <span class="stat-value">{{ aiRagInfo.model }}</span>
+              <div class="detail-row" v-if="aiRagInfo?.model">
+                <span class="detail-label">AI 모델</span>
+                <span class="detail-value">{{ aiRagInfo.model }}</span>
               </div>
             </div>
-            <div class="card-footer">
-              <div class="status-dot" :class="getStatusClass(aiRagStatus)"></div>
-              <span class="status-time">{{ lastUpdated || '확인 중...' }}</span>
+            <div class="card-bottom">
+              <span class="update-time">{{ lastUpdated || '확인 중...' }}</span>
             </div>
           </article>
 
           <!-- RAG System -->
           <article class="service-card" :class="getStatusClass(ragSystemStatus)">
-            <div class="card-header">
-              <div class="service-info">
-                <span class="service-icon">📚</span>
-                <h3 class="service-name">RAG System</h3>
+            <div class="card-top">
+              <div class="service-icon-wrap rag">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z" />
+                  <line x1="9" y1="7" x2="16" y2="7" />
+                  <line x1="9" y1="11" x2="14" y2="11" />
+                </svg>
               </div>
-              <span class="status-pill" :class="getStatusClass(ragSystemStatus)">
+              <span class="status-badge" :class="getStatusClass(ragSystemStatus)">
+                <span class="badge-dot" :class="getStatusClass(ragSystemStatus)"></span>
                 {{ getStatusText(ragSystemStatus) }}
               </span>
             </div>
-            <div class="card-body">
-              <div class="stat-row">
-                <span class="stat-label">초기화 상태</span>
-                <span class="stat-value" :class="{ 'text-success': ragSystemInfo?.initialized }">
+            <h3 class="service-name">RAG System</h3>
+            <div class="card-details">
+              <div class="detail-row">
+                <span class="detail-label">초기화 상태</span>
+                <span class="detail-value" :class="{ 'text-success': ragSystemInfo?.initialized }">
                   {{ ragSystemInfo?.initialized ? '완료' : '미완료' }}
                 </span>
               </div>
-              <div class="stat-row" v-if="ragSystemInfo?.embedding_model">
-                <span class="stat-label">임베딩 모델</span>
-                <span class="stat-value truncate">{{ ragSystemInfo.embedding_model }}</span>
+              <div class="detail-row" v-if="ragSystemInfo?.embedding_model">
+                <span class="detail-label">임베딩 모델</span>
+                <span class="detail-value truncate">{{ ragSystemInfo.embedding_model }}</span>
               </div>
-              <div class="stat-row" v-if="ragSystemInfo?.document_count">
-                <span class="stat-label">인덱싱 문서</span>
-                <span class="stat-value highlight">{{ ragSystemInfo.document_count?.toLocaleString() }}개</span>
+              <div class="detail-row" v-if="ragSystemInfo?.document_count">
+                <span class="detail-label">인덱싱 문서</span>
+                <span class="detail-value accent">{{ ragSystemInfo.document_count?.toLocaleString() }}개</span>
               </div>
-              <div class="stat-row" v-if="ragSystemInfo?.embedding_dimension">
-                <span class="stat-label">벡터 차원</span>
-                <span class="stat-value">{{ ragSystemInfo.embedding_dimension }}</span>
-              </div>
-              <div class="stat-row" v-if="ragSystemInfo?.llm_model">
-                <span class="stat-label">LLM 모델</span>
-                <span class="stat-value">{{ ragSystemInfo.llm_model }}</span>
+              <div class="detail-row" v-if="ragSystemInfo?.llm_model">
+                <span class="detail-label">LLM 모델</span>
+                <span class="detail-value">{{ ragSystemInfo.llm_model }}</span>
               </div>
             </div>
-            <div class="card-footer">
-              <div class="status-dot" :class="getStatusClass(ragSystemStatus)"></div>
-              <span class="status-time">{{ lastUpdated || '확인 중...' }}</span>
+            <div class="card-bottom">
+              <span class="update-time">{{ lastUpdated || '확인 중...' }}</span>
             </div>
           </article>
         </div>
       </section>
 
-      <!-- 기술 스택 섹션 -->
-      <section class="tech-section">
-        <h2 class="section-title">기술 스택</h2>
-        <div class="tech-grid">
-          <div class="tech-card">
-            <div class="tech-icon-wrapper">
-              <span class="tech-icon">🌐</span>
-            </div>
-            <div class="tech-info">
-              <span class="tech-label">프론트엔드</span>
-              <span class="tech-value">Vue 3 + TypeScript</span>
-            </div>
-          </div>
-          <div class="tech-card">
-            <div class="tech-icon-wrapper">
-              <span class="tech-icon">⚡</span>
-            </div>
-            <div class="tech-info">
-              <span class="tech-label">백엔드</span>
-              <span class="tech-value">FastAPI + Python</span>
-            </div>
-          </div>
-          <div class="tech-card">
-            <div class="tech-icon-wrapper">
-              <span class="tech-icon">🧠</span>
-            </div>
-            <div class="tech-info">
-              <span class="tech-label">AI 모델</span>
-              <span class="tech-value">Gemini 2.5 Flash</span>
-            </div>
-          </div>
-          <div class="tech-card">
-            <div class="tech-icon-wrapper">
-              <span class="tech-icon">🔍</span>
-            </div>
-            <div class="tech-info">
-              <span class="tech-label">벡터 검색</span>
-              <span class="tech-value">FAISS + Gemini Embedding</span>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <!-- 푸터 -->
-      <footer class="status-footer">
-        <p class="update-time" v-if="lastUpdated">마지막 업데이트: {{ lastUpdated }}</p>
-        <button class="btn-secondary" @click="goBack">
-          <span>← 돌아가기</span>
+      <!-- 하단 -->
+      <div class="page-footer">
+        <p class="footer-time" v-if="lastUpdated">마지막 업데이트: {{ lastUpdated }}</p>
+        <button class="back-btn" @click="goBack">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 12H5" />
+            <path d="M12 19l-7-7 7-7" />
+          </svg>
+          돌아가기
         </button>
-      </footer>
+      </div>
     </main>
+
+    <CommonFooter />
   </div>
 </template>
 
@@ -193,6 +172,8 @@
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { getApiBaseUrl } from '@/utils/ports-config';
+import HeaderSection from '../components/main/HeaderSection.vue';
+import CommonFooter from '../components/common/CommonFooter.vue';
 
 const router = useRouter();
 
@@ -249,16 +230,6 @@ const overallStatusClass = computed(() => {
   if (statuses.some(s => s === 'loading')) return 'loading';
   if (statuses.some(s => s === 'offline')) return 'critical';
   return 'warning';
-});
-
-const overallStatusIcon = computed(() => {
-  const icons: Record<string, string> = {
-    healthy: '✅',
-    warning: '⚠️',
-    critical: '❌',
-    loading: '🔄'
-  };
-  return icons[overallStatusClass.value] || '🔄';
 });
 
 const overallStatusTitle = computed(() => {
@@ -382,195 +353,164 @@ onMounted(() => refreshAll());
 </script>
 
 <style scoped>
-/* ===== 기본 설정 ===== */
+/* ===== 기본 레이아웃 ===== */
 .status-page {
+  width: 100%;
   min-height: 100vh;
-  background: linear-gradient(180deg, #F3F8FF 0%, #FFFFFF 100%);
+  overflow-x: hidden;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  background: #f3f8ff;
   font-family: Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
-/* ===== 헤더 ===== */
-.status-header {
-  background: linear-gradient(254deg, #17315F 5.17%, #02478A 45.43%, #0A6ECF 80.95%);
-  padding: 56px 40px;
-  color: white;
+.status-main {
+  width: 100%;
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 60px 40px 40px;
 }
 
-.header-content {
-  max-width: 1000px;
-  margin: 0 auto;
+/* ===== 페이지 헤더 ===== */
+.page-header {
+  margin-bottom: 40px;
+}
+
+.page-label {
+  display: inline-block;
+  color: #02478A;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 140%;
+  margin-bottom: 8px;
 }
 
 .page-title {
+  color: #1F2937;
   font-size: 36px;
   font-weight: 700;
   line-height: 150%;
   margin: 0 0 8px 0;
-  display: flex;
-  align-items: center;
-  gap: 12px;
 }
 
-.title-icon {
-  font-size: 32px;
-}
-
-.page-subtitle {
+.page-desc {
+  color: #6B7280;
   font-size: 16px;
   font-weight: 400;
-  opacity: 0.9;
-  margin: 0 0 24px 0;
+  margin: 0;
 }
 
-/* ===== 버튼 ===== */
-.btn-primary {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 13px 32px;
-  background-color: #FFFFFF;
-  color: #02478A;
-  border: none;
-  border-radius: 12px;
-  font-family: Pretendard, sans-serif;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0px 4px 4px rgba(0, 0, 0, 0.15);
-}
-
-.btn-primary:hover:not(:disabled) {
-  background-color: #F0F6FF;
-  transform: translateY(-2px);
-  box-shadow: 0px 6px 12px rgba(0, 0, 0, 0.2);
-}
-
-.btn-primary:disabled {
-  opacity: 0.7;
-  cursor: not-allowed;
-}
-
-.btn-secondary {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 13px 24px;
-  background-color: #F3F4F6;
-  color: #1F2937;
-  border: 1px solid #E5E7EB;
-  border-radius: 12px;
-  font-family: Pretendard, sans-serif;
-  font-size: 16px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.btn-secondary:hover {
-  background-color: #E5E7EB;
-  transform: translateY(-1px);
-}
-
-/* ===== 스피너 ===== */
-.spinner {
-  width: 16px;
-  height: 16px;
-  border: 2px solid #02478A;
-  border-top-color: transparent;
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* ===== 콘텐츠 ===== */
-.status-content {
-  max-width: 1000px;
-  margin: 0 auto;
-  padding: 40px;
-}
-
-/* ===== 상태 배너 ===== */
-.status-banner {
+/* ===== 전체 상태 배너 ===== */
+.overall-banner {
   display: flex;
   align-items: center;
   gap: 20px;
-  padding: 24px 32px;
+  padding: 24px 28px;
   border-radius: 20px;
-  margin-bottom: 40px;
-  position: relative;
-  overflow: hidden;
+  margin-bottom: 48px;
+  transition: all 0.3s ease;
 }
 
-.status-banner.healthy {
+.overall-banner.healthy {
   background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%);
-  border: 1px solid #10B981;
+  border: 1px solid #A7F3D0;
 }
 
-.status-banner.warning {
+.overall-banner.warning {
   background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
-  border: 1px solid #F59E0B;
+  border: 1px solid #FDE68A;
 }
 
-.status-banner.critical {
+.overall-banner.critical {
   background: linear-gradient(135deg, #FEF2F2 0%, #FECACA 100%);
-  border: 1px solid #EF4444;
+  border: 1px solid #FECACA;
 }
 
-.status-banner.loading {
+.overall-banner.loading {
   background: linear-gradient(135deg, #F0F6FF 0%, #E5E7EB 100%);
-  border: 1px solid #9CA3AF;
+  border: 1px solid #D1D5DB;
 }
 
-.banner-icon {
-  font-size: 48px;
+.banner-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
   flex-shrink: 0;
 }
 
-.banner-text {
+.banner-dot.healthy { background: #10B981; box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.2); }
+.banner-dot.warning { background: #F59E0B; box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.2); }
+.banner-dot.critical { background: #EF4444; box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.2); }
+.banner-dot.loading {
+  background: #9CA3AF;
+  box-shadow: 0 0 0 4px rgba(156, 163, 175, 0.2);
+  animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+.banner-body {
   flex: 1;
 }
 
 .banner-title {
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 700;
   color: #1F2937;
-  margin: 0 0 4px 0;
+  margin: 0 0 2px 0;
+  line-height: 140%;
 }
 
-.banner-description {
-  font-size: 16px;
+.banner-desc {
+  font-size: 14px;
   font-weight: 400;
   color: #6B7280;
   margin: 0;
 }
 
-.banner-indicator {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
+/* ===== 새로고침 버튼 ===== */
+.refresh-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 20px;
+  background: #02478A;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 12px;
+  font-family: Pretendard, sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(2, 71, 138, 0.25);
+}
+
+.refresh-btn:hover:not(:disabled) {
+  background: #01386E;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(2, 71, 138, 0.35);
+}
+
+.refresh-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.refresh-icon {
   flex-shrink: 0;
 }
 
-.banner-indicator.healthy { background-color: #10B981; }
-.banner-indicator.warning { background-color: #F59E0B; }
-.banner-indicator.critical { background-color: #EF4444; }
-.banner-indicator.loading {
-  background-color: #9CA3AF;
-  animation: pulse 1.5s ease-in-out infinite;
+.refresh-icon.spinning {
+  animation: spin 0.8s linear infinite;
 }
 
-@keyframes pulse {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.4; }
+/* ===== 서비스 섹션 ===== */
+.services-section {
+  margin-bottom: 48px;
 }
 
-/* ===== 섹션 ===== */
-.section-title {
+.section-heading {
   font-size: 24px;
   font-weight: 700;
   color: #1F2937;
@@ -578,173 +518,57 @@ onMounted(() => refreshAll());
   line-height: 140%;
 }
 
-/* ===== 서비스 카드 ===== */
-.services-section {
-  margin-bottom: 40px;
-}
-
 .services-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 24px;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
 }
 
+/* ===== 서비스 카드 ===== */
 .service-card {
   background: #FFFFFF;
   border-radius: 20px;
-  padding: 24px;
+  padding: 28px;
   border: 1px solid #F3F4F6;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   transition: all 0.3s ease;
   display: flex;
   flex-direction: column;
+  position: relative;
+  overflow: hidden;
 }
+
+.service-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  border-radius: 20px 20px 0 0;
+  transition: background 0.3s ease;
+}
+
+.service-card.online::before { background: #10B981; }
+.service-card.offline::before { background: #EF4444; }
+.service-card.error::before { background: #F59E0B; }
+.service-card.loading::before { background: #9CA3AF; }
 
 .service-card:hover {
   transform: translateY(-4px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
 }
 
-.service-card.online { border-top: 4px solid #10B981; }
-.service-card.offline { border-top: 4px solid #EF4444; }
-.service-card.error { border-top: 4px solid #F59E0B; }
-.service-card.loading { border-top: 4px solid #9CA3AF; }
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 20px;
-}
-
-.service-info {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.service-icon {
-  font-size: 28px;
-}
-
-.service-name {
-  font-size: 18px;
-  font-weight: 700;
-  color: #1F2937;
-  margin: 0;
-}
-
-.status-pill {
-  padding: 6px 14px;
-  border-radius: 100px;
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.status-pill.online { background: #D1FAE5; color: #065F46; }
-.status-pill.offline { background: #FECACA; color: #991B1B; }
-.status-pill.error { background: #FEF3C7; color: #92400E; }
-.status-pill.loading { background: #E5E7EB; color: #4B5563; }
-
-.card-body {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.stat-row {
+.card-top {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  margin-bottom: 16px;
 }
 
-.stat-label {
-  font-size: 14px;
-  font-weight: 500;
-  color: #6B7280;
-}
-
-.stat-value {
-  font-size: 14px;
-  font-weight: 600;
-  color: #1F2937;
-}
-
-.stat-value.highlight {
-  color: #02478A;
-}
-
-.stat-value.truncate {
-  max-width: 180px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.stat-value.text-success {
-  color: #10B981;
-}
-
-.card-footer {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 20px;
-  padding-top: 16px;
-  border-top: 1px solid #F3F4F6;
-}
-
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-}
-
-.status-dot.online { background: #10B981; }
-.status-dot.offline { background: #EF4444; }
-.status-dot.error { background: #F59E0B; }
-.status-dot.loading {
-  background: #9CA3AF;
-  animation: pulse 1.5s ease-in-out infinite;
-}
-
-.status-time {
-  font-size: 12px;
-  color: #9CA3AF;
-}
-
-/* ===== 기술 스택 ===== */
-.tech-section {
-  margin-bottom: 40px;
-}
-
-.tech-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 16px;
-}
-
-.tech-card {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  background: #FFFFFF;
-  padding: 20px;
-  border-radius: 16px;
-  border: 1px solid #F3F4F6;
-  transition: all 0.2s ease;
-}
-
-.tech-card:hover {
-  border-color: #02478A;
-  box-shadow: 0 4px 12px rgba(2, 71, 138, 0.1);
-}
-
-.tech-icon-wrapper {
-  width: 48px;
-  height: 48px;
-  background: #F0F6FF;
+.service-icon-wrap {
+  width: 44px;
+  height: 44px;
   border-radius: 12px;
   display: flex;
   align-items: center;
@@ -752,104 +576,252 @@ onMounted(() => refreshAll());
   flex-shrink: 0;
 }
 
-.tech-icon {
-  font-size: 24px;
+.service-icon-wrap.backend {
+  background: #F0F6FF;
+  color: #02478A;
 }
 
-.tech-info {
+.service-icon-wrap.ai {
+  background: #FFF7ED;
+  color: #C2410C;
+}
+
+.service-icon-wrap.rag {
+  background: #F0FDF4;
+  color: #15803D;
+}
+
+/* ===== 상태 뱃지 ===== */
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 100px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.status-badge.online { background: #ECFDF5; color: #065F46; }
+.status-badge.offline { background: #FEF2F2; color: #991B1B; }
+.status-badge.error { background: #FFFBEB; color: #92400E; }
+.status-badge.loading { background: #F3F4F6; color: #4B5563; }
+
+.badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.badge-dot.online { background: #10B981; }
+.badge-dot.offline { background: #EF4444; }
+.badge-dot.error { background: #F59E0B; }
+.badge-dot.loading {
+  background: #9CA3AF;
+  animation: pulse-dot 1.5s ease-in-out infinite;
+}
+
+.service-name {
+  font-size: 18px;
+  font-weight: 700;
+  color: #1F2937;
+  margin: 0 0 20px 0;
+}
+
+/* ===== 카드 상세 ===== */
+.card-details {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 12px;
 }
 
-.tech-label {
-  font-size: 12px;
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.detail-label {
+  font-size: 13px;
   font-weight: 500;
   color: #9CA3AF;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
-.tech-value {
-  font-size: 16px;
+.detail-value {
+  font-size: 13px;
   font-weight: 600;
   color: #1F2937;
+  text-align: right;
 }
 
-/* ===== 푸터 ===== */
-.status-footer {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  padding-top: 24px;
+.detail-value.accent {
+  color: #02478A;
+}
+
+.detail-value.truncate {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.detail-value.text-success {
+  color: #10B981;
+}
+
+.card-bottom {
+  margin-top: 20px;
+  padding-top: 14px;
   border-top: 1px solid #F3F4F6;
 }
 
 .update-time {
-  font-size: 14px;
+  font-size: 12px;
+  color: #9CA3AF;
+  font-weight: 400;
+}
+
+/* ===== 페이지 하단 ===== */
+.page-footer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding-top: 32px;
+  border-top: 1px solid #E5E7EB;
+}
+
+.footer-time {
+  font-size: 13px;
   color: #9CA3AF;
   margin: 0;
 }
 
-/* ===== 반응형 ===== */
-@media (max-width: 768px) {
-  .status-header {
-    padding: 40px 20px;
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: #FFFFFF;
+  color: #1F2937;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  font-family: Pretendard, sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.back-btn:hover {
+  background: #F3F4F6;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+/* ===== 애니메이션 ===== */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ===== 반응형: 태블릿 ===== */
+@media (max-width: 1024px) {
+  .status-main {
+    padding: 48px 30px 30px;
   }
 
   .page-title {
-    font-size: 28px;
+    font-size: 30px;
   }
 
-  .status-content {
-    padding: 24px 20px;
+  .services-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* ===== 반응형: 모바일 ===== */
+@media (max-width: 768px) {
+  .status-main {
+    padding: 36px 20px 20px;
   }
 
-  .status-banner {
-    flex-direction: column;
-    text-align: center;
-    padding: 24px;
+  .page-title {
+    font-size: 26px;
   }
 
-  .banner-indicator {
-    position: absolute;
-    top: 16px;
-    right: 16px;
+  .page-desc {
+    font-size: 14px;
+  }
+
+  .overall-banner {
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 20px;
+  }
+
+  .refresh-btn {
+    width: 100%;
+    justify-content: center;
   }
 
   .services-grid {
     grid-template-columns: 1fr;
+    gap: 16px;
   }
 
-  .tech-grid {
-    grid-template-columns: 1fr 1fr;
-  }
-}
-
-@media (max-width: 480px) {
-  .status-header {
-    padding: 32px 16px;
-  }
-
-  .page-title {
-    font-size: 24px;
-  }
-
-  .status-content {
-    padding: 20px 16px;
-  }
-
-  .section-title {
+  .section-heading {
     font-size: 20px;
   }
 
-  .tech-grid {
-    grid-template-columns: 1fr;
+  .service-card {
+    padding: 24px;
+  }
+}
+
+/* ===== 반응형: 소형 모바일 ===== */
+@media (max-width: 480px) {
+  .status-main {
+    padding: 28px 16px 16px;
   }
 
-  .stat-value.truncate {
-    max-width: 140px;
+  .page-header {
+    margin-bottom: 28px;
+  }
+
+  .page-label {
+    font-size: 14px;
+  }
+
+  .page-title {
+    font-size: 22px;
+  }
+
+  .overall-banner {
+    border-radius: 16px;
+    padding: 16px;
+  }
+
+  .banner-title {
+    font-size: 17px;
+  }
+
+  .service-card {
+    padding: 20px;
+    border-radius: 16px;
+  }
+
+  .service-name {
+    font-size: 16px;
+  }
+
+  .detail-value.truncate {
+    max-width: 110px;
   }
 }
 </style>
