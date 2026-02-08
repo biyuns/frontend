@@ -167,6 +167,7 @@ onMounted(() => {
   width: 100%;
   border-bottom: 1px solid var(--color-card-border);
   margin-bottom: 0;
+  padding-left: 48px;
 }
 
 .faq-question-row {
@@ -236,13 +237,16 @@ onMounted(() => {
 }
 
 .faq-answer-wrapper {
-  width: 100%;
   overflow: hidden;
   transition: max-height 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94), 
               opacity 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
   max-height: 0;
   opacity: 0;
-  margin-left: -2px;
+  background: #F8FBFF;
+  margin-left: -88px;
+  margin-right: -40px;
+  padding-left: 88px;
+  padding-right: 40px;
 }
 
 .faq-answer-wrapper.open {
@@ -251,14 +255,13 @@ onMounted(() => {
 
 .faq-answer-card {
   width: 100%;
-  background: var(--color-bg-secondary);
-  border-radius: 16px;
+  background: transparent;
+  border-radius: 0;
   display: flex;
   align-items: center;
   justify-content: flex-start;
   gap: 18px;
-  padding: 24px 0 24px 2px;
-  /* margin-bottom: 24px; */
+  padding: 24px 0;
   box-sizing: border-box;
   transform: translateY(0);
   transition: transform 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
@@ -271,14 +274,14 @@ onMounted(() => {
 .faq-a-label {
   font-size: 2rem;
   font-weight: 700;
-  color: var(--color-primary);
+  color: #02478A;
   flex-shrink: 0;
 }
 
 .faq-a-text {
   font-size: 1.35rem;
-  font-weight: 500;
-  color: var(--color-text-primary);
+  font-weight: 700;
+  color: #02478A;
   line-height: 1.6;
   flex: 1;
   text-align: left;
@@ -339,8 +342,11 @@ onMounted(() => {
     right: -30px;
   }
   
-  .faq-answer-card {
-    padding: 24px 36px;
+  .faq-answer-wrapper {
+    margin-left: -78px;
+    margin-right: -30px;
+    padding-left: 78px;
+    padding-right: 30px;
   }
 }
 
@@ -365,6 +371,10 @@ onMounted(() => {
     font-size: 1.8rem;
   }
   
+  .faq-row {
+    padding-left: 32px;
+  }
+  
   .faq-question-row {
     padding: 20px 0;
     gap: 12px;
@@ -384,9 +394,14 @@ onMounted(() => {
   }
   
   .faq-answer-card {
-    padding: 20px 28px;
     gap: 12px;
-    margin-bottom: 20px;
+  }
+  
+  .faq-answer-wrapper {
+    margin-left: -52px;
+    margin-right: -20px;
+    padding-left: 52px;
+    padding-right: 20px;
   }
   
   .faq-a-label {
@@ -405,6 +420,10 @@ onMounted(() => {
   
   .text-wrapper-4 {
     font-size: 1.6rem;
+  }
+  
+  .faq-row {
+    padding-left: 20px;
   }
   
   .faq-question-row {
@@ -426,9 +445,14 @@ onMounted(() => {
   }
   
   .faq-answer-card {
-    padding: 18px 24px;
     gap: 10px;
-    margin-bottom: 16px;
+  }
+  
+  .faq-answer-wrapper {
+    margin-left: -36px;
+    margin-right: -16px;
+    padding-left: 36px;
+    padding-right: 16px;
   }
   
   .faq-a-label {
