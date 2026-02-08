@@ -25,17 +25,19 @@
         <div class="news-row-header">
           <div class="news-row-content">
             <div class="news-title">{{ news.title }}</div>
-            <div class="news-date">{{ news.date }}</div>
           </div>
-          <div v-if="news.desc" class="news-chevron" :class="{ rotated: expandedIndex === idx }">
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <div class="news-chevron" :class="{ rotated: expandedIndex === idx }">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
             </svg>
           </div>
         </div>
-        <div v-if="news.desc" class="news-desc-wrapper" :class="{ expanded: expandedIndex === idx }">
-          <div class="news-desc">{{ news.desc }}</div>
+        <div class="news-expand-area" :class="{ expanded: expandedIndex === idx }">
+          <div class="news-expand-inner">
+            <div v-if="news.desc" class="news-desc">{{ news.desc }}</div>
+          </div>
         </div>
+        <div class="news-date">{{ news.date }}</div>
       </div>
     </div>
   </section>
@@ -141,42 +143,35 @@ onMounted(() => {
   flex-direction: column;
   align-items: stretch;
   padding: 0 2.5rem;
+  gap: 0;
 }
 
 /* --- News Row --- */
 .news-row {
-  border-bottom: 1px solid #E5E7EB;
   cursor: pointer;
-  transition: background-color 0.15s ease;
-}
-
-.news-row:last-child {
-  border-bottom: none;
+  padding: 24px 8px 24px 48px;
 }
 
 .news-row:hover {
   background-color: rgba(0, 0, 0, 0.01);
+  border-radius: 8px;
 }
 
 .news-row-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  padding: 20px 4px;
   gap: 16px;
 }
 
 .news-row-content {
   flex: 1;
   min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
 }
 
 .news-title {
-  font-size: 1.15rem;
-  font-weight: 600;
+  font-size: 1.25rem;
+  font-weight: 700;
   color: var(--color-text-primary);
   letter-spacing: -0.01em;
   line-height: 1.5;
@@ -188,6 +183,8 @@ onMounted(() => {
   font-weight: 400;
   letter-spacing: 0.01em;
   line-height: 1.4;
+  margin-top: 6px;
+  padding-left: 0;
 }
 
 /* --- Chevron --- */
@@ -198,34 +195,37 @@ onMounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  color: #9CA3AF;
+  color: #D1D5DB;
   transition: transform 0.3s ease, color 0.2s ease;
-  border-radius: 8px;
 }
 
 .news-chevron.rotated {
   transform: rotate(180deg);
-  color: #6B7280;
+  color: #9CA3AF;
 }
 
 /* --- Accordion --- */
-.news-desc-wrapper {
+.news-expand-area {
   max-height: 0;
   overflow: hidden;
   transition: max-height 0.3s ease, opacity 0.25s ease;
   opacity: 0;
 }
 
-.news-desc-wrapper.expanded {
+.news-expand-area.expanded {
   max-height: 300px;
   opacity: 1;
 }
 
+.news-expand-inner {
+  padding: 0;
+}
+
 .news-desc {
-  padding: 0 4px 20px 4px;
-  font-size: 1rem;
+  padding: 4px 0 8px 0;
+  font-size: 0.95rem;
   font-weight: 400;
-  color: #4B5563;
+  color: #6B7280;
   line-height: 1.7;
 }
 
@@ -299,8 +299,11 @@ onMounted(() => {
   .news-list {
     padding: 0 1.2rem;
   }
+  .news-row {
+    padding: 18px 6px 18px 32px;
+  }
   .news-title {
-    font-size: 1.05rem;
+    font-size: 1.1rem;
   }
   .news-date {
     font-size: 0.85rem;
@@ -330,8 +333,8 @@ onMounted(() => {
   .news-list {
     padding: 0 0.5rem;
   }
-  .news-row-header {
-    padding: 16px 2px;
+  .news-row {
+    padding: 14px 4px 14px 20px;
   }
   .news-title {
     font-size: 0.98rem;
@@ -341,7 +344,6 @@ onMounted(() => {
   }
   .news-desc {
     font-size: 0.93rem;
-    padding-bottom: 16px;
   }
 }
 
