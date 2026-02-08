@@ -46,10 +46,6 @@
             </button>
           </div>
 
-          <div class="login-footer-link">
-            <span class="question-text">이미 계정이 있으신가요?</span>
-            <span class="login-link" @click="handleKakaoLogin" style="cursor: pointer;">로그인</span>
-          </div>
         </div>
       </div>
     </div>
