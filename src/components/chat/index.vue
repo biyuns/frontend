@@ -356,7 +356,7 @@ watch(isMobile, (newVal) => {
     isCollapsed.value = false;
     showCollapsibleContent.value = true;
     showFixedContent.value = false;
-    sidebarVisible.value = true; 
+    sidebarVisible.value = false; 
   } else {
     sidebarVisible.value = true;
   }
