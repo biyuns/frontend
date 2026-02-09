@@ -80,7 +80,7 @@
           <!-- admin 전용 메뉴 -->
           <UserManagement v-if="activeMenu === 'users' && permissions.user_management" />
           <DatabaseBrowser v-else-if="activeMenu === 'database' && permissions.db_browser" />
-          <ChatLogViewer v-else-if="activeMenu === 'chat-history' && permissions.chat_history" />
+          <ChatLogViewer v-else-if="activeMenu === 'chat-history' && permissions.chat_history" :adminRole="adminRole" />
           <DatabaseBackup v-else-if="activeMenu === 'backup' && permissions.backup" />
           <!-- dev/admin 공용 메뉴 -->
           <ContentManager v-else-if="activeMenu === 'content' && permissions.content_management" />

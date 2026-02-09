@@ -2,7 +2,7 @@
   <div class="chat-log-viewer">
     <div class="header">
       <h2 class="section-title">채팅 기록 관리</h2>
-      <button class="export-all-btn" @click="showExportModal = true">
+      <button v-if="isAdmin" class="export-all-btn" @click="showExportModal = true">
         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
           <polyline points="7 10 12 15 17 10"></polyline>
@@ -46,7 +46,7 @@
           <input
             v-model="searchQuery"
             type="text"
-            placeholder="제목, 사용자 검색..."
+            :placeholder="isAdmin ? '제목, 사용자 검색...' : '제목 검색...'"
             @input="debouncedSearch"
           />
         </div>
@@ -66,11 +66,11 @@
             <div class="session-info">
               <span class="session-title">{{ session.title || '제목 없음' }}</span>
               <span class="session-meta">
-                <span class="user-badge">{{ getUserDisplayName(session) }}</span>
+                <span v-if="isAdmin" class="user-badge">{{ getUserDisplayName(session) }}</span>
                 <span class="message-count">{{ session.message_count }}개 메시지</span>
               </span>
             </div>
-            <span class="session-date">{{ formatDate(session.created_at) }}</span>
+            <span v-if="isAdmin" class="session-date">{{ formatDate(session.created_at) }}</span>
           </div>
 
           <div v-if="sessions.length === 0" class="empty-state">
@@ -92,13 +92,13 @@
           <div class="chat-header">
             <div class="chat-info">
               <h3>{{ chatDetail.title || '제목 없음' }}</h3>
-              <span class="chat-meta">
+              <span v-if="isAdmin" class="chat-meta">
                 사용자: {{ getUserDisplayName(chatDetail) }}
                 <span v-if="chatDetail.user?.email" class="user-email">({{ chatDetail.user.email }})</span>
                 <span v-if="chatDetail.created_at"> | 생성: {{ formatDateFull(chatDetail.created_at) }}</span>
               </span>
             </div>
-            <div class="chat-actions">
+            <div v-if="isAdmin" class="chat-actions">
               <button class="action-btn" @click="exportChat" title="내보내기">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -134,7 +134,7 @@
                     {{ getModelDisplayName(message.model_name) }}
                   </span>
                 </span>
-                <span v-if="message.created_at" class="message-time">
+                <span v-if="isAdmin && message.created_at" class="message-time">
                   {{ formatTime(message.created_at) }}
                 </span>
               </div>
@@ -207,9 +207,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { adminAPI, type ChatHistoryListItem, type ChatHistoryDetailAdmin } from '../../services/api'
 import { marked } from 'marked'
+
+const props = defineProps<{
+  adminRole: 'dev' | 'admin' | null
+}>()
+
+const isAdmin = computed(() => props.adminRole === 'admin')
 
 const sessions = ref<ChatHistoryListItem[]>([])
 const selectedSession = ref<ChatHistoryListItem | null>(null)

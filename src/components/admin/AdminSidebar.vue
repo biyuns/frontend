@@ -81,7 +81,7 @@
         <span>지식 관리</span>
       </button>
 
-      <!-- 채팅 기록: admin만 접근 가능 -->
+      <!-- 채팅 기록: dev, admin 모두 접근 가능 (dev는 열람만) -->
       <button
         v-if="permissions.chat_history"
         class="nav-item"
