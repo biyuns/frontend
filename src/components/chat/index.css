@@ -378,7 +378,6 @@ button {
   flex-shrink: 0;
   gap: 10px;
   position: relative;
-  min-width: 115px;
   width: auto;
   overflow: visible;
   z-index: 19;
