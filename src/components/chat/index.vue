@@ -1098,7 +1098,7 @@ const goToPreparation = () => {
   align-items: stretch;
   flex-wrap: nowrap;
   flex-shrink: 0;
-  gap: 24px;
+  gap: 12px;
   position: relative;
   width: 100%;
   padding: 0 20px 0 20px;
@@ -1122,19 +1122,20 @@ const goToPreparation = () => {
   cursor: pointer;
   transition: all 0.2s ease;
   border-radius: 8px;
-  padding: 0px 8px 0px 8px;
+  padding: 8px;
   box-sizing: border-box;
 }
 
 .frame-3.collapsed, .frame-7.collapsed, .frame-9.collapsed {
-  padding : 0px;
+  padding: 8px;
   justify-content: center;
 }
 
 .chatbot-menu-item > div:hover {
   background-color: var(--color-bg-secondary);
-  transform: translateY(-1px);
+  transform: translateY(-2px);
 }
+
 .frame-3 {
   z-index: 19;
 }
